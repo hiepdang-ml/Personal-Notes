@@ -1,0 +1,879 @@
+\documentclass[10pt,twocolumn]{memoir}
+
+% Left and right margins
+\setlrmarginsandblock{0.35in}{0.35in}{*}
+% Top and bottom margins
+\setulmarginsandblock{1in}{0.8in}{*}
+% Apply the layout
+\checkandfixthelayout
+% Space between the two columns
+\setlength{\columnsep}{0.2in}
+% Space between paragrahps
+% \setlength{\parskip}{0.1em}
+% Indentation before paragraphs
+% \setlength{\parindent}{1em}
+
+\usepackage{microtype}
+\usepackage{mathpazo}
+\usepackage{amsmath}
+
+\begin{document}
+
+\chapter{Introduction}
+\label{ch:introduction}
+
+A pattern recognition system learns a function that maps an input vector $\mathbf{x}$ to an output $\mathbf{y}$ using a set of training data. Once trained, the system is applied to previously unseen inputs, and its ability to produce accurate outputs for data that differ from the training examples is known as \textit{generalization}, a central goal of pattern recognition. Before being passed to the learning algorithm, raw input data are often \textit{pre-processed} or transformed into a more useful representation, a process sometimes called \textit{feature extraction}. Such transformations can reduce irrelevant variability, lower dimensionality, and improve computational efficiency while preserving information important for the task. The same pre-processing procedure must be applied consistently to both training and test data, and care must be taken not to discard information that is necessary for accurate prediction.
+
+Pattern recognition problems can be broadly divided into \textit{supervised learning} and \textit{unsupervised learning}. In supervised learning, each training input vector $\mathbf{x}$ is paired with a corresponding target output $\mathbf{t}$, and the goal is to learn a mapping from inputs to targets. If the target belongs to one of a finite set of discrete categories, the problem is called \textit{classification}; if the target consists of one or more continuous variables, it is called \textit{regression}. In unsupervised learning, the training data contain only input vectors without associated target values, and the goal is instead to discover structure in the data. Typical unsupervised tasks include \textit{clustering}, which groups similar observations, \textit{density estimation}, which models the distribution of the data, and \textit{dimensionality reduction}, which represents high-dimensional data in a lower-dimensional space for analysis or visualization.
+
+\textit{Reinforcement learning} is concerned with learning how an agent should act in an environment in order to maximize a cumulative reward. Unlike supervised learning, the agent is not provided with the correct output for each situation, but instead learns through interaction, trial and error, and feedback in the form of rewards. Because an action may influence not only the immediate reward but also future states and rewards, reinforcement learning often involves a \textit{credit assignment problem}: determining which earlier actions were responsible for a later outcome. A central challenge is balancing \textit{exploration}, in which the agent tries new actions to gain information about their consequences, and \textit{exploitation}, in which it selects actions that are already known to produce high rewards. Effective reinforcement learning requires an appropriate trade-off between these two behaviors.
+
+\textit{Overfitting} occurs when a model becomes too closely adapted to the training data, capturing not only the underlying relationship in the data but also random fluctuations or noise. An overfitted model can therefore achieve very low training error while performing poorly on previously unseen data, indicating weak \textit{generalization}. This typically happens when the model is unnecessarily complex relative to the amount or quality of available training data. For example, in polynomial regression, increasing the polynomial order $M$ increases the flexibility of the fitted function. If $M$ is made sufficiently large, the polynomial can pass exactly through all training points and drive the training error to zero. However, the resulting coefficients may become very large and the fitted curve may oscillate strongly between training points.
+
+For a fixed model complexity, increasing the size of the training set generally reduces the risk of \textit{overfitting}, because the model is constrained by more observations and has less freedom to fit random fluctuations in individual data points. Conversely, with limited training data, highly flexible models are more prone to overfitting. Rather than controlling complexity only by reducing the number of model parameters, a common approach is \textit{regularization}, which modifies the training objective by adding a penalty for large parameter values. For example, $L_2$ regularization minimizes
+
+\begin{equation}
+    \widetilde{E}(\mathbf{w}) = \frac{1}{2}\sum_{n=1}^{N}\left\{y(\mathbf{x}_n,\mathbf{w}) - t_n \right\}^{2} + \frac{\lambda}{2}\|\mathbf{w}\|^{2},
+\end{equation}
+
+where $\lambda$ controls the strength of the regularization and $\|\mathbf{w}\|^2 = \mathbf{w}^{\mathrm{T}}\mathbf{w}$ is the squared $L_2$ norm of the parameter vector. The penalty discourages excessively large weights and therefore limits the effective flexibility of the fitted function. This approach is known as \textit{shrinkage methods} for linear models and is commonly referred to as \textit{weight decay} in neural networks.
+
+\vspace{10pt}
+\section{Probability Theory}
+
+Probability theory provides a mathematical framework for representing and reasoning under uncertainty. In pattern recognition, uncertainty can arise from measurement noise, limited data, incomplete information, or intrinsic variability in the underlying process. By assigning probabilities to possible events or outcomes, probability theory makes it possible to quantify uncertainty and combine available information systematically. When combined with decision theory, it provides the basis for making predictions or decisions even when the available information is incomplete or ambiguous.
+
+For discrete random variables, probabilities can be interpreted in terms of relative frequencies over repeated trials. If a random variable $X$ can take values $x_i$, then $p(X=x_i)$ denotes the probability that $X$ takes the value $x_i$. These probabilities satisfy
+
+\begin{equation}
+    0 \leq p(X=x_i) \leq 1,
+\end{equation}
+
+and, if the possible outcomes are mutually exclusive and exhaustive,
+
+\begin{equation}
+    \sum_i p(X=x_i) = 1.
+\end{equation}
+
+When two random variables $X$ and $Y$ are considered together, their joint probability $p(X,Y)$ describes the probability of particular combinations of their values. For discrete variables, $p(X=x_i,Y=y_j)$ denotes the probability that $X=x_i$ and $Y=y_j$ occur simultaneously. The probability distribution of one variable alone can be obtained by summing the joint distribution over all possible values of the other variable. This is called \textit{marginalization}, and gives the \textit{sum rule}
+
+\begin{equation}
+    p(X) = \sum_Y p(X,Y).
+\end{equation}
+
+The resulting $p(X)$ is called the \textit{marginal probability distribution} of $X$.
+
+A \textit{conditional probability} describes the probability of one variable given that the value of another variable is known. The conditional probability of $Y$ given $X$ is written $p(Y \mid X)$. The joint and conditional distributions are related through the \textit{product rule}
+
+\begin{equation}
+    p(X,Y) = p(Y \mid X)p(X).
+\label{eq:product_rule_1}
+\end{equation}
+
+Equivalently, by interchanging the roles of $X$ and $Y$,
+
+\begin{equation}
+    p(X,Y) = p(X \mid Y)p(Y).
+\label{eq:product_rule_2}
+\end{equation}
+
+The sum rule and product rule form the basic algebra of probability and allow more complicated probability distributions to be constructed and manipulated.
+
+Combining the two forms of the product rule gives \textit{Bayes' theorem}
+
+\begin{equation}
+    p(Y \mid X) = \frac{p(X \mid Y)p(Y)}{p(X)}.
+\end{equation}
+
+Using the sum rule, the denominator can be written as
+
+\begin{equation}
+    p(X) = \sum_Y p(X \mid Y)p(Y).
+\end{equation}
+
+Thus, Bayes' theorem can also be expressed as
+
+\begin{equation}
+    p(Y \mid X) = \frac{p(X \mid Y)p(Y)}{\sum_Y p(X \mid Y)p(Y)}.
+\end{equation}
+
+The denominator acts as a normalization factor ensuring that the posterior probabilities over all possible values of $Y$ sum to one.
+
+Bayes' theorem provides a general mechanism for updating uncertainty when new information becomes available. The distribution $p(Y)$ represents knowledge about $Y$ before observing $X$ and is called the \textit{prior probability}. After observing $X$, the updated distribution $p(Y \mid X)$ is called the \textit{posterior probability}. The quantity $p(X \mid Y)$ describes how likely the observed data $X$ are under a particular value of $Y$ and is commonly called the \textit{likelihood}. Bayes' theorem therefore expresses the general relationship
+
+\begin{equation}
+    \mathrm{posterior}\,\propto\,\mathrm{likelihood}\times\mathrm{prior}.
+\end{equation}
+
+The posterior combines prior information with evidence supplied by the observed data.
+
+Two random variables $X$ and $Y$ are said to be \textit{independent} if knowledge of one provides no information about the other. In this case, their joint probability factorizes as
+
+\begin{equation}
+    p(X,Y) = p(X)p(Y).
+\end{equation}
+
+Using the product rule in Eqs.~(\ref{eq:product_rule_1}) and~(\ref{eq:product_rule_2}), independence also implies
+
+\begin{equation}
+    p(Y \mid X) = p(Y),
+\end{equation}
+
+and similarly,
+
+\begin{equation}
+    p(X \mid Y) = p(X).
+\end{equation}
+
+Thus, for independent variables, conditioning on one variable does not alter the probability distribution of the other.
+
+\vspace{10pt}
+\section{Probability densities}
+
+For a continuous random variable $x$, probabilities are described by a \textit{probability density function} $p(x)$ rather than by assigning probabilities directly to individual values. For an infinitesimal interval $(x,x+\delta x)$, the probability that the variable lies within that interval is approximately $p(x)\delta x$. More generally, the probability that $x$ lies in an interval $(a,b)$ is
+
+\begin{equation}
+    p(x \in (a,b)) = \int_a^b p(x)\,dx.
+\end{equation}
+
+A probability density must satisfy two fundamental conditions. First, it must be nonnegative everywhere,
+
+\begin{equation}
+    p(x) \geq 0,
+\end{equation}
+
+and second, it must be normalized so that the total probability over the entire domain is one,
+
+\begin{equation}
+    \int_{-\infty}^{\infty} p(x)\,dx = 1.
+\end{equation}
+
+Unlike probabilities themselves, the value of a probability density at a particular point is not a probability. For a continuous variable, the probability of observing exactly one particular value is zero; meaningful probabilities are obtained by integrating the density over intervals.
+
+Under a change of variables, probability must be conserved. Suppose $x$ and $y$ are related by a differentiable, one-to-one transformation $x=g(y)$ ($g$ may be linear or nonlinear). For a small positive increment $\delta y>0$, the interval $(y,y+\delta y)$ corresponds to an interval $(x,x+\delta x)$, where
+
+\begin{equation}
+    \delta x = g(y+\delta y)-g(y).
+\end{equation}
+
+The length of the corresponding interval in $x$ is therefore $|\delta x|$. Since probability mass equals density times interval length, conservation of probability gives
+
+\begin{equation}
+    p_y(y)\,\delta y \approx p_x(x)\,|\delta x|.
+\end{equation}
+
+Dividing by $\delta y$ gives
+
+\begin{equation}
+    p_y(y) \approx p_x(x) \left|\frac{\delta x}{\delta y}\right|.
+\end{equation}
+
+Taking the limit as $\delta y \to 0$,
+
+\begin{equation}
+    p_y(y) = \lim_{\delta y \to 0} p_x(x) \left| \frac{\delta x}{\delta y} \right| = p_x(x) \left|\frac{dx}{dy}\right|.
+\end{equation}
+
+Since $x=g(y)$, this can be written as
+
+\begin{equation}
+    p_y(y) = p_x(g(y)) \left| g'(y) \right|.
+\end{equation}
+
+The factor $\left|dx/dy\right|$ is the \textit{Jacobian factor}. It accounts for the stretching or compression of intervals under the transformation. If the transformation stretches an interval, the density must decrease; if it compresses an interval, the density must increase, so that the total probability mass remains unchanged. Here, the role of the absolute value is evident, since a decreasing transformation gives $dx/dy<0$, whereas a probability density must remain nonnegative.
+
+This also explains why a probability density is not itself a probability. The invariant quantity is the probability mass $p_x(x)\,dx$, not the numerical value of $p_x(x)$. Consequently, the shape and height of a density depend on the variable used to represent it. In particular, the location of the maximum of a density, or its \textit{mode}, is generally not preserved under a nonlinear transformation. If $\hat{x}$ is a mode of $p_x(x)$, so that
+
+\begin{equation}
+    \left.\frac{d p_x(x)}{dx}\right|_{x=\hat{x}} = 0,
+\end{equation}
+
+then the transformed density is $p_y(y)=p_x(g(y))|g'(y)|$. Its stationary points satisfy
+
+\begin{equation}
+    \frac{d}{dy}\left[p_x(g(y))|g'(y)|\right] = 0,
+\end{equation}
+
+which contains the Jacobian. For a nonlinear transformation $g$, the transformed mode is not the inverse transformation of the original mode, i.e., $\hat{y} \ne g^{-1}(\hat{x})$. For a linear transformation, however, $g'(y)$ is constant, so the Jacobian only rescales the density and does not change the corresponding location of its maximum.
+
+So far, we have assumed that the transformation $g$ is one-to-one over the domain. If a transformation is not one-to-one, its domain must be partitioned into monotonic branches, and the probability contributions from all branches that map to the same transformed value must be added up. More generally, if $y=h(x)$ and the equation $y=h(x)$ has inverse solutions $x_i(y)$, then
+
+\begin{equation}
+    p_y(y) = \sum_i p_x\left(x_i(y)\right) \left| \frac{dx_i}{dy} \right|.
+\end{equation}
+
+For example, if $y=x^2$, then a positive value of $y$ can arise from both $x=\sqrt{y}$ and $x=-\sqrt{y}$, so both branches contribute to the density of $y$. This branch-summing rule is the general form of probability conservation for non-one-to-one transformations.
+
+The \textit{cumulative distribution function} (CDF) gives the probability that a continuous random variable is less than or equal to a specified value. It is defined by
+
+\begin{equation}
+    P(z) = \int_{-\infty}^{z} p(x)\,dx.
+\end{equation}
+
+The probability density can be recovered from the cumulative distribution by differentiation,
+
+\begin{equation}
+    p(x) = \frac{dP(x)}{dx}.
+\end{equation}
+
+If we have several continuous variables $x_1,\ldots, x_D$, denoted collectively by the vector $\mathbf{x}$, then we can deﬁne a joint probability density $p(\mathbf{x}) = p(x_1,\ldots, x_D)$ such that the probability of $\mathbf{x}$ falling in an inﬁnitesimal volume $\delta \mathbf{x}$ containing the point $\mathbf{x}$ is given by $p(\mathbf{x})\delta x$. This multivariate probability density must satisfy
+
+\begin{equation}
+    p(\mathbf{x}) \geq 0
+\end{equation}
+
+and
+
+\begin{equation}
+    \int p(\mathbf{x})\,d\mathbf{x} = 1,
+\end{equation}
+
+where the integral is taken over the entire domain of $\mathbf{x}$.
+
+The sum and product rules of probability extend naturally from discrete variables to continuous variables. For two continuous random variables $x$ and $y$, the marginal density of $x$ is obtained by integrating the joint density over all possible values of $y$,
+
+\begin{equation}
+    p(x) = \int p(x,y)\,dy.
+\end{equation}
+
+Thus, marginalization corresponds to summation for discrete variables and integration for continuous variables, while the product rule retains the same conceptual form. Bayes' theorem likewise applies to probability densities,
+
+\begin{equation}
+    p(y \mid x) = \frac{p(x \mid y)p(y)}{p(x)},
+\end{equation}
+
+with the denominator obtained by integrating over the possible values of $y$,
+
+\begin{equation}
+    p(x) = \int p(x \mid y)p(y)\,dy.
+\end{equation}
+
+Hence, the same basic probability rules apply to discrete distributions, continuous densities, and combinations of discrete and continuous random variables; the main difference is that summations over discrete states are replaced by integrations over continuous domains.
+
+\section{Expectations and covariances}
+
+The \textit{expectation} of a function $f(x)$ is its probability-weighted average under the distribution of $x$. For a discrete random variable,
+
+\begin{equation}
+    \mathbb{E}[f] = \sum_x p(x)f(x),
+\end{equation}
+
+whereas for a continuous random variable,
+
+\begin{equation}
+    \mathbb{E}[f] = \int p(x)f(x)\,dx.
+\end{equation}
+
+Thus, values of $f(x)$ that occur in regions of higher probability contribute more strongly to the average.
+
+If $N$ independent samples $x_1,\ldots,x_N$ are drawn from the distribution of $x$, the expectation can be approximated by the empirical average
+
+\begin{equation}
+    \mathbb{E}[f] \approx \frac{1}{N}\sum_{n=1}^{N}f(x_n).
+\end{equation}
+
+As $N\to\infty$, this approximation converges to the true expectation under suitable conditions.
+
+When a function depends on several random variables, a subscript can be used to indicate which variable is being averaged over. For example, $\mathbb{E}_x[f(x,y)]$ denotes expectation with respect to $x$, treating $y$ as fixed. The resulting quantity is therefore a function of $y$.
+
+A \textit{conditional expectation} is an expectation taken with respect to a conditional distribution. For a discrete variable,
+
+\begin{equation}
+    \mathbb{E}_x[f \mid y] = \sum_x p(x \mid y)f(x).
+\end{equation}
+
+For a continuous variable,
+
+\begin{equation}
+    \mathbb{E}_x[f \mid y] = \int p(x \mid y)f(x)\,dx.
+\end{equation}
+
+This quantity represents the average value of $f(x)$ under the conditional distribution of $x$ given the observed value of $y$.
+
+The \textit{variance} measures the average squared deviation of a random quantity from its mean. For a function $f(x)$,
+
+\begin{equation}
+    \operatorname{var}[f] = \mathbb{E}\left[\left(f(x)-\mathbb{E}[f(x)]\right)^2\right].
+\end{equation}
+
+Expanding the square gives the equivalent form
+
+\begin{equation}
+    \operatorname{var}[f] = \mathbb{E}[f(x)^2] - \mathbb{E}[f(x)]^2.
+\end{equation}
+
+In particular, for the random variable $x$ itself,
+
+\begin{equation}
+    \operatorname{var}[x] = \mathbb{E}[x^2] - \mathbb{E}[x]^2.
+\end{equation}
+
+Variance is always nonnegative and quantifies the spread of a random variable around its mean.
+
+For two random variables $x$ and $y$ and functions $f(x)$ and $g(y)$, the \textit{covariance} measures the extent to which $f(x)$ and $g(y)$ vary together. It is defined as
+
+\begin{equation}
+    \operatorname{cov}[f(x),g(y)] = \mathbb{E}_{x,y} \left[\left(f(x)-\mathbb{E}[f(x)]\right) \left(g(y)-\mathbb{E}[g(y)]\right)\right].
+\end{equation}
+
+Expanding the product gives
+
+\begin{equation}
+    \operatorname{cov}[f(x),g(y)] = \mathbb{E}_{x,y}[f(x)g(y)] - \mathbb{E}[f(x)]\mathbb{E}[g(y)].
+\end{equation}
+
+A positive covariance indicates that $f(x)$ and $g(y)$ tend to deviate from their respective means in the same direction, whereas a negative covariance indicates that they tend to deviate in opposite directions.
+
+As a particular case, taking $f(x)=x$ and $g(y)=y$ gives
+
+\begin{equation}
+    \operatorname{cov}[x,y] = \mathbb{E}_{x,y} \left[\left(x-\mathbb{E}[x]\right)\left(y-\mathbb{E}[y]\right)\right],
+\end{equation}
+
+or equivalently,
+
+\begin{equation}
+    \operatorname{cov}[x,y] = \mathbb{E}_{x,y}[xy] - \mathbb{E}[x]\,\mathbb{E}[y].
+\end{equation}
+
+If $x$ and $y$ are independent, then $f(x)$ and $g(y)$ are also independent, and therefore
+
+\begin{equation}
+\mathbb{E}_{x,y}[f(x)g(y)] = \mathbb{E}[f(x)]\mathbb{E}[g(y)],
+\end{equation}
+
+which implies
+
+\begin{equation}
+    \operatorname{cov}[f(x),g(y)] = 0.
+\end{equation}
+
+In particular, $\operatorname{cov}[x,y]=0$ when $x$ and $y$ are independent. However, zero covariance does not generally imply independence.
+
+For random vectors $\mathbf{x}$ and $\mathbf{y}$, covariance generalizes to a matrix,
+
+\begin{equation}
+    \operatorname{cov}[\mathbf{x},\mathbf{y}] = \mathbb{E}_{\mathbf{x},\mathbf{y}}\left[\left(\mathbf{x}-\mathbb{E}[\mathbf{x}]\right)\left(\mathbf{y}-\mathbb{E}[\mathbf{y}]\right)^{\mathrm{T}}\right].
+\end{equation}
+
+Equivalently,
+
+\begin{equation}
+    \operatorname{cov}[\mathbf{x},\mathbf{y}] = \mathbb{E}[\mathbf{x}\mathbf{y}^{\mathrm{T}}] - \mathbb{E}[\mathbf{x}]\mathbb{E}[\mathbf{y}]^{\mathrm{T}}.
+\end{equation}
+
+If we consider the covariance of the components of a vector $\mathbf{x}$ with each other, then we use a slightly simpler notation $\operatorname{cov}[\mathbf{x}, \mathbf{x}] \equiv \operatorname{cov}[\mathbf{x}], \mathbf{x}]$.
+
+\section{Bayesian probabilities}
+
+The \textit{frequentist} interpretation of probability associates probability with the long-run frequency of outcomes in repeated experiments. This view is natural when the same random experiment can be repeated many times. The \textit{Bayesian} interpretation is more general and uses probability to represent uncertainty about quantities that may not be associated with repeatable events. In this view, probability expresses a degree of belief that can be updated when new evidence becomes available.
+
+This distinction is particularly useful in pattern recognition, where uncertainty may concern not only the observed data but also unknown model parameters. Suppose a model is described by a parameter vector $\mathbf{w}$ and the observed data are denoted by $\mathcal{D}$. Before observing the data, uncertainty about $\mathbf{w}$ is represented by the \textit{prior distribution} $p(\mathbf{w})$, which may also be viewed as the generating distribution from which the model parameters are initialized. The likelihood $p(\mathcal{D}\mid\mathbf{w})$ assigns a score to each parameter value $\mathbf{w}$ according to how plausible the observed data $\mathcal{D}$ are under that choice of $\mathbf{w}$. After observing $\mathcal{D}$, the prior and likelihood are combined through Bayes' theorem to obtain the \textit{posterior distribution} $p(\mathbf{w}\mid\mathcal{D})$, which represents the updated uncertainty about the model parameters,
+
+\begin{equation}
+    p(\mathbf{w}\mid\mathcal{D}) = \frac{p(\mathcal{D}\mid\mathbf{w})p(\mathbf{w})}{p(\mathcal{D})}.
+\label{eq:c1_bayes_posterior}
+\end{equation}
+
+For example, consider the linear model
+
+\begin{equation}
+    y = wx + \epsilon,
+\end{equation}
+
+where
+
+\begin{equation}
+    \epsilon \sim \mathcal{N}(0,\sigma^2).
+\end{equation}
+
+For a given input $x_i$ and parameter $w$, the model implies
+
+\begin{equation}
+    p(y_i\mid x_i,w) = \mathcal{N}(y_i\mid wx_i,\sigma^2).
+\end{equation}
+
+For fixed $w$, this describes the distribution of possible observations $y_i$. Once an observation $y_i$ is obtained, the same expression can instead be viewed as a function of $w$, indicating how well each value of $w$ fits the observed data. Assuming data points are independent, then for the data set $\mathcal{D}=\{(x_i,y_i)\}_{i=1}^{N}$, the likelihood is
+
+\begin{equation}
+    p(\mathcal{D}\mid w) = \prod_{i=1}^{N} p(y_i\mid x_i,w).
+\end{equation}
+
+Each conditional density has the form
+
+\begin{equation}
+    p(y_i\mid x_i,w) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp \left[-\frac{(y_i-wx_i)^2}{2\sigma^2}\right].
+\end{equation}
+
+Substituting this Gaussian density into the likelihood gives
+
+\begin{align}
+    p(\mathcal{D}\mid w)
+    &= \prod_{i=1}^{N} \frac{1}{\sqrt{2\pi\sigma^2}} \exp \left[-\frac{(y_i-wx_i)^2}{2\sigma^2}\right]
+    \notag \\
+    &= \left(\frac{1}{\sqrt{2\pi\sigma^2}}\right)^N \exp \left[-\frac{1}{2\sigma^2}\sum_{i=1}^{N}(y_i-wx_i)^2\right].
+\label{eq:c1_likelihood_and_residual}
+\end{align}
+
+Hence, the likelihood assigned to $w$ depends directly on the total squared residual
+
+\begin{equation}
+    \sum_{i=1}^{N}(y_i-wx_i)^2.
+\end{equation}
+
+A value of $w$ that produces predictions $wx_i$ closer to the observations $y_i$ has a smaller total squared residual and therefore a larger likelihood. Conversely, a value of $w$ that produces larger residuals has a smaller likelihood. Thus, $p(\mathcal{D}\mid w)$ provides a quantitative score for how compatible each value of $w$ is with the observed data.
+
+Because the likelihood is not a probability distribution over $\mathbf{w}$. Therefore, in general,
+
+\begin{equation}
+    \int p(\mathcal{D}\mid\mathbf{w})\,d\mathbf{w} \neq 1.
+\end{equation}
+
+Instead, for fixed $\mathbf{w}$, $p(\mathcal{D}\mid\mathbf{w})$ is a probability distribution over the possible data $\mathcal{D}$, and therefore
+
+\begin{equation}
+    \int p(\mathcal{D}\mid\mathbf{w})\,d\mathcal{D} = 1.
+\end{equation}
+
+Given this definition of likelihood, we can state Bayes' theorem in words
+
+\begin{equation}
+    \text{posterior} \propto \text{likelihood} \times \text{prior}.
+\end{equation}
+
+The denominator $p(\mathcal{D})$ in Eq.~\ref{eq:c1_bayes_posterior} is called the \textit{evidence} or \textit{marginal likelihood}. It is obtained by marginalizing the joint distribution $p(\mathcal{D},\mathbf{w})$ over the parameter space. Using the product rule,
+
+\begin{equation}
+    p(\mathcal{D},\mathbf{w}) = p(\mathcal{D}\mid\mathbf{w})p(\mathbf{w}),
+\end{equation}
+
+and therefore
+
+\begin{equation}
+    p(\mathcal{D}) = \int p(\mathcal{D},\mathbf{w}) \, d\mathbf{w} = \int p(\mathcal{D}\mid\mathbf{w})p(\mathbf{w}) \, d\mathbf{w}.
+\end{equation}
+
+Substituting this expression into Bayes' theorem gives
+
+\begin{equation}
+    p(\mathbf{w}\mid\mathcal{D}) = \frac{p(\mathcal{D}\mid\mathbf{w})p(\mathbf{w})}{\int p(\mathcal{D}\mid\mathbf{w})p(\mathbf{w}) \, d\mathbf{w}}.
+\label{eq:c1_bayes_normalization}
+\end{equation}
+
+The evidence therefore acts as the normalization constant for the product of the likelihood and prior, ensuring that the posterior distribution $p(\mathbf{w}\mid\mathcal{D})$ integrates to one.
+
+The Bayesian and frequentist viewpoints therefore treat model parameters differently. In the frequentist approach, $\mathbf{w}$ is regarded as a fixed but unknown quantity, and uncertainty is characterized through the behavior of an estimator over multiple hypothetical data sets (one true $\mathbf{w}$, many possible $\mathcal{D}$). In the Bayesian approach, the observed data set is fixed, and uncertainty about $\mathbf{w}$ is represented directly by the posterior distribution $p(\mathbf{w}\mid\mathcal{D})$ (one true $\mathcal{D}$, many possible $\mathbf{w}$).
+
+A widely used frequentist estimator is \textit{maximum likelihood}, in which $\mathbf{w}$ is set to the value that maximizes the likelihood function $p(\mathcal{D}\mid\mathbf{w})$. This corresponds to choosing the value of $\mathbf{w}$ for which the probability of the observed data set is maximized. Hence,
+
+\begin{equation}
+    \mathbf{w}_{\mathrm{ML}} = \arg\max_{\mathbf{w}} p(\mathcal{D}\mid\mathbf{w}).
+\end{equation}
+
+Because the logarithm is monotonically increasing, this is equivalent to maximizing the log-likelihood,
+
+\begin{equation}
+    \mathbf{w}_{\mathrm{ML}} = \arg\max_{\mathbf{w}} \log p(\mathcal{D}\mid\mathbf{w}),
+\end{equation}
+
+or minimizing the negative log-likelihood,
+
+\begin{equation}
+    \mathbf{w}_{\mathrm{ML}} = \arg\min_{\mathbf{w}} \left\{-\log p(\mathcal{D}\mid\mathbf{w})\right\}.
+\end{equation}
+
+In general, maximizing likelihood is equivalent to minimizing the discrepancy between predictions and observations. For a Gaussian model, Eq.~\ref{eq:c1_likelihood_and_residual} shows that it corresponds to minimizing the sum of squared residuals. This explains why the negative log-likelihood commonly appears as a loss function in machine learning.
+
+In frequentist inference, one approach to estimating uncertainty in $\mathbf{w}$ is to examine how the estimator varies across possible data sets. One practical method is the \textit{bootstrap}. Given a data set $\mathcal{D}=\{(\mathbf{x}_i,y_i)\}^N_{i=1}$, a new data set is created by sampling $N$ points from $\mathcal{D}$ with replacement. Repeating this procedure $L$ times produces $L$ bootstrap data sets, and the variability of the corresponding parameter estimates can be used to assess statistical uncertainty.
+
+One criticism of the Bayesian approach is that the prior distribution $p(\mathbf{w})$ may sometimes be chosen for mathematical or computational convenience rather than because it closely reflects genuine prior knowledge. Since the posterior depends directly on the prior through Eq.~\ref{eq:c1_bayes_normalization}, different reasonable choices of $p(\mathbf{w})$ can lead to different posterior distributions, especially when the available data are limited. This dependence introduces a degree of subjectivity into Bayesian inference. To reduce the influence of the prior, \textit{noninformative priors} are sometimes used. These priors are designed to place relatively little preference on particular parameter values before the data are observed, so that the likelihood has a stronger influence on the resulting posterior.
+
+One criticism of the Bayesian approach is that the prior distribution $p(\mathbf{w})$ may be chosen for mathematical convenience rather than because it closely reflects genuine prior knowledge. Since the posterior depends on the prior by Eq.~\ref{eq:c1_bayes_normalization}, different choices of $p(\mathbf{w})$ can lead to different posterior distributions, which introduces a degree of subjectivity, especially when the available data are limited. \textit{Noninformative priors} are sometimes used to reduce this dependence by assigning relatively little preference to particular parameter values before the data is observed. Their goal is to let the likelihood dominate the posterior, with minimal influence from the prior.
+
+That being said, constructing a truly noninformative prior is difficult because even a seemingly weak prior can still encode assumptions. For example, a Gaussian prior $p(w)=\mathcal{N}(0,\sigma^2)$ with a very large $\sigma^2$ may appear nearly flat over a wide range, but it still favors values near zero and assigns decreasing probability to increasingly large values of $|w|$. Similarly, a uniform prior is only uniform over a chosen range, so changing variables or changing the bounds can alter what is considered ``uninformative''. These choices become especially important in model comparison because Bayesian model evidence integrates the likelihood over the prior distribution, i.e., $p(\mathcal{D}) = \int p(\mathcal{D}\mid \mathbf{w})p(\mathbf{w})\,d\mathbf{w}$. As a result, the width and shape of the prior can substantially affect the marginal likelihood, so two models with similar fits to the data may receive different evidence values simply because their prior distributions allocate probability mass differently across parameter space. Moreover, a poorly chosen prior can lead to misleading posterior conclusions, especially when the available data are limited and the likelihood is not strong enough to overwhelm the prior. In such cases, the posterior may become highly concentrated around parameter values favored by the prior, giving the appearance of strong certainty even when that certainty is largely driven by an inappropriate prior assumption. Frequentist evaluation methods provide a useful external check because they assess predictive performance without relying on a prior specification. Techniques such as cross-validation are therefore valuable for detecting poor generalization and for comparing models based on their performance on held-out data.
+
+The main practical difficulty of Bayesian inference is computational. Rather than selecting a single parameter value $\mathbf{w}$, Bayesian inference maintains a posterior distribution $p(\mathbf{w}\mid\mathcal{D})$ over plausible parameter values. Consequently, prediction requires accounting for uncertainty across the entire parameter space. For a new input $\mathbf{x}_*$, the posterior predictive distribution is obtained by marginalizing over $\mathbf{w}$. Starting from the law of total probability and applying the product rule,
+
+\begin{equation}
+\begin{aligned}
+p(\mathbf{y}_*\mid\mathbf{x}_*,\mathcal{D})
+&=
+\int p(\mathbf{y}_*,\mathbf{w}\mid\mathbf{x}_*,\mathcal{D})\,d\mathbf{w} \\
+&=
+\int
+p(\mathbf{y}_*\mid\mathbf{x}_*,\mathbf{w},\mathcal{D})p(\mathbf{w}\mid\mathbf{x}_*,\mathcal{D})\,d\mathbf{w}.
+\end{aligned}
+\label{eq:c1_bayes_inference}
+\end{equation}
+
+Given $\mathbf{w}$ and the new input $\mathbf{x}_*$, the prediction $\mathbf{y}_*$ is assumed to be conditionally independent of the training data $\mathcal{D}$, so
+
+\begin{equation}
+    p(\mathbf{y}_*\mid\mathbf{x}_*,\mathbf{w},\mathcal{D}) = p(\mathbf{y}_*\mid\mathbf{x}_*,\mathbf{w}).
+\label{eq:c1_bayes_inference_a}
+\end{equation}
+
+In addition, treating $\mathbf{x}_*$ as a fixed new input means that it provides no additional information about $\mathbf{w}$ beyond the training data, so
+
+\begin{equation}
+    p(\mathbf{w}\mid\mathbf{x}_*,\mathcal{D}) = p(\mathbf{w}\mid\mathcal{D}).
+\label{eq:c1_bayes_inference_b}
+\end{equation}
+
+Substituing Eqs.~\ref{eq:c1_bayes_inference_a}--\ref{eq:c1_bayes_inference_b} into Eq.~\ref{eq:c1_bayes_inference}, we obtain
+
+\begin{equation}
+    p(\mathbf{y}_*\mid\mathbf{x}_*,\mathcal{D}) = \int p(\mathbf{y}_*\mid\mathbf{x}_*,\mathbf{w}) p(\mathbf{w}\mid\mathcal{D})\,d\mathbf{w}.
+\end{equation}
+
+Thus, Bayesian prediction does not rely on a single parameter estimate. Instead, it averages (or integrates) the predictive distribution associated with every possible $\mathbf{w}$, weighted by its posterior probability. When $\mathbf{w}$ is high-dimensional, this averaging requires integration over a correspondingly high-dimensional parameter space, which can make exact Bayesian prediction computationally expensive or intractable.
+
+The development of sampling methods, such as Markov chain Monte Carlo (discussed in Chapter 11) along with dramatic improvements in the speed and memory capacity of computers, opened the door to the practical use of Bayesian techniques in an impressive range of problem domains. Monte Carlo methods are very ﬂexible and can be applied to a wide range of models. However, they are computationally intensive and have mainly been used for small-scale problems. More recently, highly efﬁcient deterministic approximation schemes such as variational Bayes and expectation propagation (discussed in Chapter 10) have been developed. These offer a complementary alternative to sampling methods and have allowed Bayesian techniques to be used in large-scale applications
+
+\section{The Gaussian distribution}
+
+Various proability distributions and their key properties will be discuss extensively in Chapter 2. This section is to introduce here the most important probability distribution for continuous variables, called the \textit{normal} or \textit{Gaussian} distribution.
+
+For a scalar random variable $x$, the Gaussian density is defined by
+
+\begin{equation}
+    \mathcal{N}(x;\mu,\sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp\left[-\frac{(x-\mu)^2}{2\sigma^2}\right].
+\end{equation}
+
+which is governed by two parameters: $\mu$, called the \textit{mean}, and $\sigma^2$, called the variance. The square root of the variance, given by $\sigma$, is called the \textit{standard deviation}, and the reciprocal of the variance, written as $\beta = \frac{1}{\sigma^2}$, is called the \textit{precision}.
+
+The Gaussian distribution satisfies the usual requirements for a continuous probability density,
+
+\begin{equation}
+    \mathcal{N}(x;\mu,\sigma^2) > 0
+\end{equation}
+
+and
+
+\begin{equation}
+    \int_{-\infty}^{\infty}\mathcal{N}(x;\mu,\sigma^2)\,dx = 1.
+\end{equation}
+
+We can readily ﬁnd expectations (its first moment) of functions of $x$ under the Gaussian distribution. In particular, the average value of x is given by
+
+\begin{equation}
+    \mathbb{E}[x] = \int_{-\infty}^{\infty}x\,\mathcal{N}(x; \mu,\sigma^2)\,dx = \mu,
+\end{equation}
+
+which is why $\mu$ is called the mean. Its second moment is
+
+\begin{equation}
+    \mathbb{E}[x^2] = \int_{-\infty}^{\infty}x^2\,\mathcal{N}(x;\mu,\sigma^2)\,dx = \mu^2+\sigma^2.
+\end{equation}
+
+Using the change of variable $z=x-\mu$, so that $x=z+\mu$ and $dx=dz$, we obtain
+
+\begin{equation}
+\begin{aligned}
+    \mathbb{E}[x] &= \int_{-\infty}^{\infty} (z+\mu)\,\mathcal{N}(z;0,\sigma^2)\,dz \\
+    &=
+    \int_{-\infty}^{\infty} z\,\mathcal{N}(z;0,\sigma^2)\,dz + \mu \int_{-\infty}^{\infty}\mathcal{N}(z;0,\sigma^2)\,dz.
+\end{aligned}
+\end{equation}
+
+Because $\mathcal{N}(z;0,\sigma^2)$ is symmetric about zero, $z\,\mathcal{N}(z;0,\sigma^2)$ is an odd function, and therefore
+
+\begin{equation}
+    \int_{-\infty}^{\infty} z\,\mathcal{N}(z;0,\sigma^2)\,dz = 0.
+\end{equation}
+
+Also, any density function should integrate to one, therefore
+
+\begin{equation}
+    \int_{-\infty}^{\infty}\mathcal{N}(z;0,\sigma^2)\,dz = 1.
+\end{equation}
+
+It follows that
+
+\begin{equation}
+    \mathbb{E}[x] = 0 + \mu = \mu,
+\end{equation}
+
+which is why $\mu$ is called the mean. Similarly, its second moment is
+
+\begin{equation}
+    \mathbb{E}[x^2] = \int_{-\infty}^{\infty} x^2\,\mathcal{N}(x\mid\mu,\sigma^2)\,dx.
+\end{equation}
+
+Keep using the change of variable $z=x-\mu$, we obtain
+
+\begin{equation}
+\begin{aligned}
+    \mathbb{E}[x^2]
+    &=
+    \int_{-\infty}^{\infty}(z+\mu)^2\,\mathcal{N}(z;0,\sigma^2)\,dz \\
+    &=
+    \int_{-\infty}^{\infty}\left(z^2+2\mu z+\mu^2\right)\mathcal{N}(z;0,\sigma^2)\,dz \\
+    &=
+    \int_{-\infty}^{\infty}z^2\,\mathcal{N}(z;0,\sigma^2)\,dz
+    + 2\mu \int_{-\infty}^{\infty}z\,\mathcal{N}(z;0,\sigma^2)\,dz \\
+    &\qquad
+    + \mu^2 \int_{-\infty}^{\infty}\mathcal{N}(z;0,\sigma^2)\,dz.
+\end{aligned}
+\end{equation}
+
+As shown above,
+
+\begin{equation}
+    \int_{-\infty}^{\infty}z\,\mathcal{N}(z;0,\sigma^2)\,dz = 0
+\end{equation}
+
+and
+
+\begin{equation}
+    \int_{-\infty}^{\infty}\mathcal{N}(z;0,\sigma^2)\,dz = 1.
+\end{equation}
+
+For the remaining term, using
+
+\begin{equation}
+    \mathcal{N}(z;0,\sigma^2) = \frac{1}{\sqrt{2\pi}\sigma} \exp\left(-\frac{z^2}{2\sigma^2}\right),
+\end{equation}
+
+we have
+
+\begin{equation}
+    \int_{-\infty}^{\infty}
+    z^2\,\mathcal{N}(z;0,\sigma^2)\,dz
+    =
+    \frac{1}{\sqrt{2\pi}\sigma}
+    \int_{-\infty}^{\infty}
+    z^2
+    \exp\left(-\frac{z^2}{2\sigma^2}\right)\,dz.
+\end{equation}
+
+Since
+
+\begin{equation}
+    \frac{d}{dz}\exp\left(-\frac{z^2}{2\sigma^2}\right) = -\frac{z}{\sigma^2}\exp\left(-\frac{z^2}{2\sigma^2}\right),
+\end{equation}
+
+we can write
+
+\begin{equation}
+    z^2 \exp\left(-\frac{z^2}{2\sigma^2}\right) = -\sigma^2 z \frac{d}{dz}\exp\left(-\frac{z^2}{2\sigma^2}\right).
+\end{equation}
+
+Applying integration by parts gives
+
+\begin{equation}
+\begin{aligned}
+    \int_{-\infty}^{\infty}
+    z^2
+    \exp\left(-\frac{z^2}{2\sigma^2}\right)\,dz
+    &=
+    -\sigma^2
+    \left[
+    z\exp\left(-\frac{z^2}{2\sigma^2}\right)
+    \right]_{-\infty}^{\infty} \\
+    &\qquad
+    +
+    \sigma^2
+    \int_{-\infty}^{\infty}
+    \exp\left(-\frac{z^2}{2\sigma^2}\right)\,dz.
+\end{aligned}
+\end{equation}
+
+The boundary term is
+
+\begin{equation}
+    \left[z\exp\left(-\frac{z^2}{2\sigma^2}\right)\right]_{-\infty}^{\infty}
+    =
+    \lim_{z\to\infty} \frac{z}{\exp\left(\frac{z^2}{2\sigma^2}\right)}
+    -
+    \lim_{z\to-\infty} \frac{z}{\exp\left(\frac{z^2}{2\sigma^2}\right)}.
+\end{equation}
+
+Applying L'Hôpital's rule gives
+
+\begin{equation}
+    \lim_{z\to\pm\infty}\frac{z}{\exp\left(\frac{z^2}{2\sigma^2}\right)}
+    =
+    \lim_{z\to\pm\infty}\frac{1}{\frac{z}{\sigma^2}\exp\left(\frac{z^2}{2\sigma^2}\right)}
+    = 0.
+\end{equation}
+
+Therefore,
+
+\begin{equation}
+    \left[z\exp\left(-\frac{z^2}{2\sigma^2}\right)\right]_{-\infty}^{\infty} = 0.
+\end{equation}
+
+Thus, the boundary term vanishes. Consequently,
+
+\begin{equation}
+    \int_{-\infty}^{\infty}z^2\,\mathcal{N}(z;0,\sigma^2)\,dz = \sigma^2\int_{-\infty}^{\infty}\mathcal{N}(z;0,\sigma^2)\,dz = \sigma^2.
+\end{equation}
+
+It follows that
+
+\begin{equation}
+    \mathbb{E}[x^2] = \sigma^2 + 2\mu(0) + \mu^2(1) = \mu^2+\sigma^2.
+\end{equation}
+
+Using $\operatorname{var}[x]=\mathbb{E}[x^2]-\mathbb{E}[x]^2$, we obtain
+
+\begin{equation}
+    \operatorname{var}[x] = \sigma^2,
+\end{equation}
+
+which is why $\sigma^2$ is called the variance. The Gaussian is symmetric about $\mu$, and its mode coincides with its mean,
+
+\begin{equation}
+    x_{\mathrm{mode}} = \mu.
+\end{equation}
+
+For a $D$-dimensional random vector $\mathbf{x}$, the corresponding multivariate Gaussian distribution is
+
+\begin{equation}
+    \mathcal{N}(\mathbf{x};\,\boldsymbol{\mu},\boldsymbol{\Sigma})
+    =
+    \frac{1}{(2\pi)^{D/2}|\boldsymbol{\Sigma}|^{1/2}}\exp\left[-\frac{1}{2}(\mathbf{x}-\boldsymbol{\mu})^{\mathrm{T}}\boldsymbol{\Sigma}^{-1}(\mathbf{x}-\boldsymbol{\mu})\right],
+\end{equation}
+
+where $\boldsymbol{\mu}\in\mathbb{R}^{D}$ is the mean vector, $\boldsymbol{\Sigma}\in\mathbb{R}^{D\times D}$ is the covariance matrix, and $|\boldsymbol{\Sigma}|$ is the determinant of $\Sigma$. The properties of multivariate Gaussian distribution will be studied in Chapter 2.
+
+Now suppose we observe a data set $\mathbf{x}=(x_1,\ldots,x_N)^{\mathrm{T}}$ consisting of $N$ scalar observations drawn independently from the same Gaussian distribution with unknown parameters $\mu$ and $\sigma^2$. The observations are therefore assumed to be \textit{independent and identically distributed} (i.i.d.),
+
+\begin{equation}
+    x_n \overset{\mathrm{i.i.d.}}{\sim}\mathcal{N}(\mu,\sigma^2).
+\end{equation}
+
+Independence allows the joint probability of the data set to factorize,
+
+\begin{equation}
+    p(\mathbf{x};\,\mu,\sigma^2) = \prod_{n=1}^{N}\mathcal{N}(x_n;\,\mu,\sigma^2).
+\end{equation}
+
+When the observed data $\mathbf{x}$ are held fixed and this expression is viewed as a function of $\mu$ and $\sigma^2$, it becomes the \textit{likelihood function} for the Gaussian parameters. Instead of finding the parameter values that directly maximize the likelihood function, it is usually more convenient to maximize its logarithm. Taking the logarithm converts the product over observations into a sum,
+
+\begin{align}
+    \ln p(\mathbf{x}\mid\mu,\sigma^2)
+    &=
+    \sum_{n=1}^{N}\ln \mathcal{N}(x_n\mid\mu,\sigma^2) \\
+    &=
+    -\frac{1}{2\sigma^2}\sum_{n=1}^{N}(x_n-\mu)^2-\frac{N}{2}\ln\sigma^2-\frac{N}{2}\ln(2\pi).
+\end{align}
+
+The log-likelihood is also numerically more stable because multiplying many small probabilities can lead to numerical underflow, whereas taking logarithms replaces products by sums. The maximum likelihood estimate of the mean is obtained by differentiating the log-likelihood with respect to $\mu$ and setting the result to zero,
+
+\begin{equation}
+    \frac{\partial}{\partial\mu} \ln p(\mathbf{x}\mid\mu,\sigma^2) = \frac{1}{\sigma^2}\sum_{n=1}^{N}(x_n-\mu) = 0.
+\end{equation}
+
+Solving for $\mu$ gives
+
+\begin{equation}
+    \mu_{\mathrm{ML}} = \frac{1}{N}\sum_{n=1}^{N}x_n,
+\label{eq:c1_gaussian_mean_estimate}
+\end{equation}
+
+which is simply the sample mean.
+
+Differentiating with respect to $\sigma^2$ gives
+
+\begin{align}
+    \frac{\partial}{\partial \sigma^2} \ln p(\mathbf{x};\mu,\sigma^2)
+    &=
+    \frac{1}{2\sigma^4} \sum_{n=1}^{N}(x_n-\mu)^2 - \frac{N}{2\sigma^2}.
+\end{align}
+
+Setting the derivative equal to zero and multiply both sides by $2\sigma^4$ gives
+
+\begin{equation}
+    \sum_{n=1}^{N}(x_n-\mu)^2 - N\sigma^2 = 0.
+\end{equation}
+
+Evaluating this expression at the maximum likelihood estimate $\mu=\mu_{\mathrm{ML}}$ yields
+
+\begin{equation}
+    \sigma_{\mathrm{ML}}^2 = \frac{1}{N}\sum_{n=1}^{N}(x_n-\mu_{\mathrm{ML}})^2.
+\label{eq:c1_gaussian_variance_estimate}
+\end{equation}
+
+From Eq.~\ref{eq:c1_gaussian_mean_estimate} and Eq.~\ref{eq:c1_gaussian_variance_estimate}, it follows that, for Gaussian observations, maximum likelihood estimation produces the sample mean and the sample variance (measured relative to the sample mean).
+
+An important issue is that an estimator is itself a random variable because its value depends on the random data set from which it is computed. If repeated data sets are drawn independently from the same distribution,
+then $\mu_{\mathrm{ML}}$ and $\sigma_{\mathrm{ML}}^2$ will generally take different values for different data sets. We can therefore study their expectations over all possible data sets.
+
+For the maximum likelihood estimate of the mean $\mu_\mathrm{ML}$ from Eq.~\ref{eq:c1_gaussian_mean_estimate}, we take the expectation and using the linearity of expectation,
+
+\begin{equation}
+    \mathbb{E}[\mu_{\mathrm{ML}}]
+    = \mathbb{E}\left[\frac{1}{N}\sum_{n=1}^{N}x_n\right]
+    = \frac{1}{N}\sum_{n=1}^{N}\mathbb{E}[x_n]
+    = \frac{1}{N}\sum_{n=1}^{N}\mu = \mu,
+\label{eq:c1_maximum_likelihood_mean}
+\end{equation}
+
+so $\mu_{\mathrm{ML}}$ is an unbiased estimator of the true mean.
+
+To derive the expectation of the variance estimator from Eq.~\ref{eq:c1_gaussian_variance_estimate}, we first observe that
+
+\begin{equation}
+\begin{aligned}
+    \sigma_{\mathrm{ML}}^2 &= \frac{1}{N}\sum_{n=1}^{N} (x_n-\mu_{\mathrm{ML}})^2
+    = \frac{1}{N}\sum_{n=1}^{N}\left[(x_n-\mu) - (\mu_{\mathrm{ML}}-\mu)\right]^2 \\
+    &= \frac{1}{N}\sum_{n=1}^{N}(x_n-\mu)^2 - \frac{2}{N}(\mu_{\mathrm{ML}}-\mu)\sum_{n=1}^{N}(x_n-\mu) + (\mu_{\mathrm{ML}}-\mu)^2.
+\end{aligned}
+\end{equation}
+
+Since
+
+\begin{equation}
+    \sum_{n=1}^{N}(x_n-\mu) = N(\mu_{\mathrm{ML}}-\mu),
+\end{equation}
+
+we obtain
+
+\begin{equation}
+    \sigma_{\mathrm{ML}}^2 = \frac{1}{N} \sum_{n=1}^{N}(x_n-\mu)^2 - (\mu_{\mathrm{ML}}-\mu)^2.
+\end{equation}
+
+Taking the expectation of both sides,
+
+\begin{equation}
+    \mathbb{E}\left[\sigma_{\mathrm{ML}}^2\right] = \frac{1}{N} \sum_{n=1}^{N}\mathbb{E}\left[(x_n-\mu)^2\right] - \mathbb{E}\left[(\mu_{\mathrm{ML}}-\mu)^2\right].
+\end{equation}
+
+Because each $x_n$ has variance $\sigma^2$, we have $\mathbb{E}\left[(x_n-\mu)^2\right] = \sigma^2$. Also, because we already know that $\mu_{\mathrm{ML}}$ is unbiased, i.e., $\mathbb{E}\left[\mu_\mathrm{ML}\right] = \mu$, we obtain
+
+\begin{equation}
+\begin{aligned}
+    \mathbb{E} \left[(\mu_{\mathrm{ML}}-\mu)^2\right] &= \operatorname{var}[\mu_{\mathrm{ML}}] =
+    \operatorname{var}\left[\frac{1}{N}\sum_{n=1}^{N}x_n\right] \\
+    &=
+    \frac{1}{N^2}\sum_{n=1}^{N}\operatorname{var}[x_n] = \frac{1}{N^2} N\sigma^2 = \frac{\sigma^2}{N}.
+\end{aligned}
+\end{equation}
+
+Therefore,
+
+\begin{equation}
+    \mathbb{E}\left[\sigma_{\mathrm{ML}}^2\right]
+    = \sigma^2 - \frac{\sigma^2}{N} \\
+    = \frac{(N-1)}{N}\sigma^2.
+\label{eq:c1_maximum_likelihood_variance}
+\end{equation}
+
+Thus, the maximum likelihood variance estimator systematically underestimates the true variance by a factor of $(N-1)/N$.
+
+It follows from Eq.~\ref{eq:c1_maximum_likelihood_variance} that the following estimate for the variance parameter is unbiased
+
+\begin{equation}
+    \widetilde{\sigma}^2 = \frac{N}{N-1}\sigma_{\mathrm{ML}}^2 = \frac{1}{N-1}\sum_{n=1}^{N}(x_n-\mu_{\mathrm{ML}})^2.
+\end{equation}
+
+In chapter 10, we shall see how this result arises automatically when we adopt a Bayesian approach.
+
+Note that the bias of the maximum likelihood solution becomes less signiﬁcant as the number N of data points increases, and in the limit $N\to\infty$ the maximum likelihood solution for the variance equals the true variance of the distribution that generated the data. In practice, for anything other than small N , this bias will not prove to be a serious problem. However, in more complex models with many parameters, the bias problems associated with maximum likelihood will be much more severe.
+
+
+
+
+\end{document}

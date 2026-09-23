@@ -1,0 +1,386 @@
+\documentclass[10pt,twocolumn,article]{memoir}
+
+% No chapters, section counter should not depend on chapter
+\counterwithout{section}{chapter}
+
+% Left and right margins
+\setlrmarginsandblock{0.35in}{0.35in}{*}
+% Top and bottom margins
+\setulmarginsandblock{1in}{0.8in}{*}
+% Apply the layout
+\checkandfixthelayout
+% Space between the two columns
+\setlength{\columnsep}{0.2in}
+
+\usepackage{microtype}
+\usepackage{mathpazo}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{nopageno}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{parskip}
+
+\usepackage[style=authoryear,backend=biber]{biblatex}
+\addbibresource{references.bib}
+
+\begin{document}
+
+\title{Variational Autoencoder}
+\author{Hiep V. Dang}
+\date{}
+\maketitle
+
+\section{Probability Space}
+
+A \textit{probability space} provides a mathematical foundation for modeling uncertainty and random phenomena. It is formally defined as a triple $(\Omega, \mathcal{F}, \mathbb{P})$, where each component plays a distinct role in the formulation of probabilistic models.
+
+The set $\Omega$ is called the \textit{sample space} and consists of all possible outcomes of a random experiment. For example, in a coin toss, $\Omega = \{\text{Heads}, \text{Tails}\}$, while in continuous settings such as measuring temperature, $\Omega$ could be an interval of real numbers.
+
+The second component, $\mathcal{F}$, is a \textit{$\sigma$-algebra} over $\Omega$. It is a collection of subsets of $\Omega$, called \textit{events}, that satisfies three properties: it contains the empty set $\varnothing$ and the full space $\Omega$, it is closed under complementation (if $A \in \mathcal{F}$, then $\Omega \setminus A \in \mathcal{F}$), and it is closed under countable unions (if $A_1, A_2, \dots \in \mathcal{F}$, then $\bigcup_{i=1}^{\infty} A_i \in \mathcal{F}$). The use of a $\sigma$-algebra ensures that we can assign probabilities to a sufficiently rich class of events, especially in the context of continuous outcomes.
+
+The third component, $\mathbb{P}$, is a \textit{probability measure} defined on $(\Omega, \mathcal{F})$, which assigns a number $\mathbb{P}(A)$ to each event $A \in \mathcal{F}$ such that $0 \leq \mathbb{P}(A) \leq 1$. It must satisfy two fundamental axioms: normalization, meaning $\mathbb{P}(\Omega) = 1$, and countable additivity (or $\sigma$-additivity), which states that for any countable collection of pairwise disjoint events $\{A_i\}_{i=1}^{\infty} \subset \mathcal{F}$, we have
+
+\begin{equation}
+    \mathbb{P}\left( \bigcup_{i=1}^{\infty} A_i \right) = \sum_{i=1}^{\infty} \mathbb{P}(A_i).
+\end{equation}
+
+Once a probability space $(\Omega, \mathcal{F}, \mathbb{P})$ is established, we can introduce \textit{random variables} to represent numerical outcomes of random experiments. A random variable is simply a function that assigns a real number to each possible outcome in $\Omega$. For this assignment to be meaningful in terms of probability, we need a consistent way to talk about which real-numbered outcomes are "probable." This is achieved by requiring the random variable to be \textit{measurable}, meaning that whenever we specify a range of real numbers—such as all values less than 5 or between 2 and 3—we can determine the probability that the random variable falls within that range. To do so, we rely on the notion of \textit{Borel sets}, which include all the intervals we typically care about (open, closed, or half-open), as well as any set that can be built from them using standard operations like taking unions or complements. The requirement of measurability ensures that any event defined in terms of the random variable corresponds to a valid event in the original probability space and can thus be assigned a probability using $\mathbb{P}$.
+
+The \textit{probability distribution} of a random variable $X$ describes how the total probability is allocated across different values that $X$ can take. Formally, the distribution $\mathbb{P}_X$ is defined by $\mathbb{P}_X(B) := \mathbb{P}(X \in B)$, where $B$ is any Borel set. This tells us the probability that the random variable falls within a specified range.
+
+In the discrete case, where $X$ takes values from a countable set $\{x_1, x_2, \dots\}$, the distribution is captured by a \textit{probability mass function} (PMF), which assigns a probability to each possible value:
+\begin{equation}
+p_X(x_i) = \mathbb{P}(X = x_i), \quad \text{with} \quad \sum_{i} p_X(x_i) = 1.
+\end{equation}
+
+In the continuous case, the distribution is described by a \textit{probability density function} (PDF), which provides a way to compute the probability of $X$ falling within any interval $A \subseteq \mathbb{R}$ via integration:
+\begin{equation}
+\mathbb{P}(X \in A) = \int_A f_X(x)\,dx,
+\end{equation}
+where $f_X(x) \geq 0$ and $\int_{-\infty}^{\infty} f_X(x)\,dx = 1$.
+
+A more general representation applicable to both cases is the \textit{cumulative distribution function} (CDF), defined as
+\begin{equation}
+F_X(x) = \mathbb{P}(X \leq x),
+\end{equation}
+which accumulates the probability up to a given point $x$. The CDF is non-decreasing, right-continuous, and satisfies the boundary conditions $\lim_{x \to -\infty} F_X(x) = 0$ and $\lim_{x \to \infty} F_X(x) = 1$.
+
+These distributional characterizations—PMF, PDF, and CDF—allow us to analyze the behavior of random variables, compute expectations, variances, and higher-order moments, and form the basis for statistical modeling and inference.
+
+\section{Self-information}
+
+In information theory, the goal of data compression is to represent outcomes from a probability distribution as efficiently as possible, using the fewest number of binary digits (bits)—without losing information. The central principle is that more probable outcomes should have shorter representations, while rare outcomes should be encoded with longer ones. This intuition leads to the notion of \textit{self-information}, which quantifies how surprising an individual event is.
+
+If an event $z$ has probability density function $p(z)$, then its self-information is defined as $-\log p(z)$, where the base of the logarithm determines the unit in which information is measured. When the logarithm is taken with base 2, the unit is called a \textit{bit}, and the value $-\log p(z)$ represents the optimal number of bits required to encode $z$ under an ideal prefix-free binary code. This value is not necessarily the actual number of bits used for one event, since real codes must use integer lengths. However, over a long sequence of independently drawn events, the average code length approaches the expected value of $-\log p(z)$.
+
+The logarithmic form is essential because it satisfies the additivity requirement for independent events. For example, if $z_1$ and $z_2$ are independent, then the joint probability is $p(z_1, z_2) = p(z_1)p(z_2)$, and the total information is the sum of the individual contributions: $-\log p(z_1, z_2) = -\log p(z_1) - \log p(z_2)$.
+
+While base 2 is standard in classical information theory due to its connection to binary encoding, other bases can be used as well. If the logarithm is taken with base $e$, the unit becomes the \textit{nat}, which is more common in fields such as machine learning and statistics, where natural logarithms simplify analytical derivations.
+
+\section{Kullback-Leibler (KL) divergence}
+
+The KL divergence arises naturally from the goal of comparing two probability distributions, $P$ (the true distribution) and $Q$ (an approximation). A fundamental motivation is to quantify how inefficient it is to use $Q$ to encode samples that are actually drawn from $P$.
+
+In information theory, the optimal number of bits needed to encode an event $z$ from a distribution $P$ is given by $-\log p(z)$. If we use $Q$ instead, we would need $-\log q(z)$ bits. The difference between the two, $\log \frac{p(z)}{q(z)}$, measures the extra cost in bits for that event. To compute the expected extra cost across all possible outcomes, we take the expectation over $P$:
+
+\begin{equation}
+    D_{\mathrm{KL}}(P \| Q) = \mathbb{E}_{z \sim P} \left[ \log \frac{p(z)}{q(z)} \right] = \int p(z) \log \frac{p(z)}{q(z)} \, dz.
+\end{equation}
+
+This expression captures how much more information (on average) is required to represent data from $P$ using the distribution $Q$. It is zero only when $P = Q$, and grows larger as $Q$ diverges from $P$. It should be noted that KL divergence is not a true distance metric because it is not symmetric, i.e., in general, $D_{\mathrm{KL}}(P \| Q) \neq D_{\mathrm{KL}}(Q \| P)$. However, it is always non-negative, i.e., $D_{\mathrm{KL}}(P \| Q) \geq 0$.
+
+\section{Variational Autoencoders (VAE)}
+
+Consider a random variable $\mathbf{x} \in \mathcal{X}$ that is assumed to be generated according to a latent variable model involving an unobserved continuous random variable $\mathbf{z} \in \mathcal{Z}$. The generative process consists of two steps: (i) a value $\mathbf{z}^{(i)}$ is generated from some prior distribution $p_{\boldsymbol{\theta^*}}(\mathbf{z})$; (ii) a value $\mathbf{x}^{(i)}$ is generated from some likelihood $p_{\boldsymbol{\theta^*}}(\mathbf{x} \mid \mathbf{z})$. We assume that $p_{\boldsymbol{\theta^*}}(\mathbf{z})$ and $p_{\boldsymbol{\theta^*}}(\mathbf{x} \mid \mathbf{z})$ come from parametric families of distributions $p_{\boldsymbol{\theta}}(\mathbf{z})$ and $p_{\boldsymbol{\theta}}(\mathbf{x} \mid \mathbf{z})$ with $\boldsymbol{\theta} \in \Theta$, the parameter space, and that their PDFs are differentiable almost everywhere w.r.t. both $\boldsymbol{\theta}$ and $\mathbf{z}$, a requirement necessary for gradient-based optimization methods. Unfortunately, the true parameter $\boldsymbol{\theta}^*$ and the latent variable $z^{(i)}$ are unknown.
+
+Very importantly, the marginal likelihood $p_{\boldsymbol{\theta}}(\mathbf{x}) = \int_{\mathcal{Z}} p_{\boldsymbol{\theta}}(\mathbf{x} \mid \mathbf{z}) p_{\boldsymbol{\theta}}(\mathbf{z}) \, d\mathbf{z}$ is intractable in most practical settings. This intractability arises because the likelihood term $p_{\boldsymbol{\theta}}(\mathbf{x} \mid \mathbf{z})$ is typically parameterized by a neural network with multiple non-linear hidden layers, and the integral over the latent space lacks a closed-form expression. Consequently, the true posterior density $p_{\boldsymbol{\theta}}(\mathbf{z} \mid \mathbf{x}) = p_{\boldsymbol{\theta}}(\mathbf{x} \mid \mathbf{z}) \, p_{\boldsymbol{\theta}}(\mathbf{z}) / p_{\boldsymbol{\theta}}(\mathbf{x})$ is also intractable because of its dependence on $p_{\boldsymbol{\theta}}(\mathbf{x})$.
+
+To address the intractability of the true posterior $p_{\boldsymbol{\theta}}(\mathbf{z} \mid \mathbf{x})$, \textcite{kingma2013auto} introduce a surrogate distribution $q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x})$, parameterized by a separate neural network with its own parameters $\boldsymbol{\phi}$. While the true posterior is determined by the generative model parameters $\boldsymbol{\theta}$ through Bayes' rule, it was shown earlier  that it cannot be computed in closed form. The variational distribution $q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x})$ is therefore introduced to approximate this posterior in a tractable manner. \textcite{kingma2013auto} refer to $q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x})$ as the probabilistic \textit{encoder} and $p_{\boldsymbol{\theta}}(\mathbf{x} \mid \mathbf{z})$ as the probabilistic \textit{decoder}.
+
+The learning objective in latent variable models is to maximize the marginal
+likelihood of the observed data $p_\theta(\mathbf{x})$. Since
+$p_\theta(\mathbf{x})$ is independent of $\mathbf{z}$ and
+$q_\phi(\mathbf{z}\mid\mathbf{x})$ is a normalized probability density,
+we have
+
+\begin{equation}
+\int_{\mathcal{Z}}
+q_\phi(\mathbf{z}\mid\mathbf{x})\,d\mathbf{z}
+= 1.
+\end{equation}
+
+Therefore, $\log p_\theta(\mathbf{x})$ may equivalently be written as an
+expectation with respect to $q_\phi(\mathbf{z}\mid\mathbf{x})$:
+
+\begin{equation}
+\begin{aligned}
+\log p_\theta(\mathbf{x})
+&=
+\log p_\theta(\mathbf{x})
+\int_{\mathcal{Z}}
+q_\phi(\mathbf{z}\mid\mathbf{x})\,d\mathbf{z} \\
+&=
+\int_{\mathcal{Z}}
+q_\phi(\mathbf{z}\mid\mathbf{x})
+\log p_\theta(\mathbf{x})\,d\mathbf{z}.
+\end{aligned}
+\end{equation}
+
+Using
+$p_\theta(\mathbf{x})
+=
+p_\theta(\mathbf{x},\mathbf{z})/
+p_\theta(\mathbf{z}\mid\mathbf{x})$,
+this becomes
+
+\begin{equation}
+\log p_\theta(\mathbf{x})
+=
+\int_{\mathcal{Z}}
+q_\phi(\mathbf{z}\mid\mathbf{x})
+\left[
+\log p_\theta(\mathbf{x},\mathbf{z})
+-
+\log p_\theta(\mathbf{z}\mid\mathbf{x})
+\right]
+d\mathbf{z}.
+\end{equation}
+
+We now add and subtract
+$\log q_\phi(\mathbf{z}\mid\mathbf{x})$ inside the integrand:
+
+\begin{equation}
+\begin{aligned}
+\log p_{\boldsymbol{\theta}}(\mathbf{x})
+={}&
+\int_{\mathcal{Z}}
+q_{\boldsymbol{\phi}}(\mathbf{z}\mid\mathbf{x})
+\left[
+\log q_{\boldsymbol{\phi}}(\mathbf{z}\mid\mathbf{x})
+-
+\log p_{\boldsymbol{\theta}}(\mathbf{z}\mid\mathbf{x})
+\right]
+\,d\mathbf{z}
+\\
+&+
+\int_{\mathcal{Z}}
+q_{\boldsymbol{\phi}}(\mathbf{z}\mid\mathbf{x})
+\left[
+\log p_{\boldsymbol{\theta}}(\mathbf{x},\mathbf{z})
+-
+\log q_{\boldsymbol{\phi}}(\mathbf{z}\mid\mathbf{x})
+\right]
+\,d\mathbf{z}.
+\end{aligned}
+\end{equation}
+
+The first term is the KL divergence between $q_{\boldsymbol{\phi}}(\mathbf{z} | \mathbf{x})$ and the true posterior $p_{\boldsymbol{\theta}}(\mathbf{z} | \mathbf{x})$:
+\begin{equation}
+    D_{\mathrm{KL}} \left[ q_{\boldsymbol{\phi}}(\mathbf{z} | \mathbf{x}) \,\|\, p_{\boldsymbol{\theta}}(\mathbf{z} | \mathbf{x}) \right]
+    = \mathbb{E}_{q_{\boldsymbol{\phi}}(\mathbf{z} | \mathbf{x})} \left[ \log q_{\boldsymbol{\phi}}(\mathbf{z} | \mathbf{x}) - \log p_{\boldsymbol{\theta}}(\mathbf{z} | \mathbf{x}) \right].
+\end{equation}
+
+The second term is called the \textit{evidence lower bound (ELBO)} of the marginal likelihood $p_{\boldsymbol{\theta}}(\mathbf{x})$:
+
+\begin{equation}
+    \mathcal{L}(\boldsymbol{\theta}, \boldsymbol{\phi}, \mathbf{x}) := \mathbb{E}_{q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x})}
+    \left[ \log p_{\boldsymbol{\theta}}(\mathbf{x}, \mathbf{z}) - \log q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x}) \right].
+\end{equation}
+
+Putting everything together gives the decomposition:
+\begin{equation}
+    \log p_{\boldsymbol{\theta}}(\mathbf{x})
+    = \mathcal{L}(\boldsymbol{\theta}, \boldsymbol{\phi}, \mathbf{x})
+    + D_{\mathrm{KL}} \left[ q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x}) \,\|\, p_{\boldsymbol{\theta}}(\mathbf{z} \mid \mathbf{x}) \right],
+\end{equation}
+
+Since the KL divergence is non-negative, it immediately follows that $\mathcal{L}(\boldsymbol{\theta}, \boldsymbol{\phi}, \mathbf{x}) \leq \log p_{\boldsymbol{\theta}}(\mathbf{x})$. For fixed $\boldsymbol{\phi}$, maximizing $\mathcal{L}$ with respect to $\boldsymbol{\theta}$ pushes up the marginal likelihood:
+
+\begin{equation}
+    \max_{\boldsymbol{\theta}} \mathcal{L}(\boldsymbol{\theta}, \boldsymbol{\phi}, \mathbf{x}) \quad \Longrightarrow \quad \max_{\boldsymbol{\theta}} \log p_{\boldsymbol{\theta}}(\mathbf{x}).
+\end{equation}
+
+For fixed $\boldsymbol{\theta}$, the marginal log-likelihood $\log p_{\boldsymbol{\theta}}(\mathbf{x})$ becomes constant, so maximizing $\mathcal{L}$ with respect to $\boldsymbol{\phi}$ is equivalent to minimizing the divergence between the approximate and true posteriors:
+\begin{equation}
+    \max_{\boldsymbol{\phi}} \mathcal{L}(\boldsymbol{\theta}, \boldsymbol{\phi}, \mathbf{x}) \quad \Longrightarrow \quad \min_{\boldsymbol{\phi}} D_{\mathrm{KL}}[q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x}) \,\|\, p_{\boldsymbol{\theta}}(\mathbf{z} \mid \mathbf{x})].
+\end{equation}
+
+In practice, both $\boldsymbol{\theta}$ and $\boldsymbol{\phi}$ are optimized jointly using stochastic gradient-based methods. It should be noted that although the true posterior $p_{\boldsymbol{\theta}}(\mathbf{z} \mid \mathbf{x})$ is intractable, the KL divergence $D_{\mathrm{KL}}[q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x}) \,\|\, p_{\boldsymbol{\theta}}(\mathbf{z} \mid \mathbf{x})]$ is minimized indirectly by maximizing the tractable ELBO.
+
+To make the ELBO more interpretable and amenable to optimization, the joint probability inside the expectation can be expanded as $\log p_{\boldsymbol{\theta}}(\mathbf{x}, \mathbf{z}) = \log p_{\boldsymbol{\theta}}(\mathbf{x} \mid \mathbf{z}) + \log p_{\boldsymbol{\theta}}(\mathbf{z})$. Substituting this into the ELBO yields:
+\begin{align}
+    \mathcal{L}(\boldsymbol{\theta}, \boldsymbol{\phi}, \mathbf{x})
+    &= \mathbb{E}_{q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x})}
+    \left[ \log p_{\boldsymbol{\theta}}(\mathbf{x} \mid \mathbf{z}) + \log p_{\boldsymbol{\theta}}(\mathbf{z}) - \log q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x}) \right] \\
+    &= \mathbb{E}_{q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x})}
+    \left[ \log p_{\boldsymbol{\theta}}(\mathbf{x} \mid \mathbf{z}) \right]
+    - D_{\mathrm{KL}}\left[ q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x}) \,\|\, p_{\boldsymbol{\theta}}(\mathbf{z}) \right].
+\end{align}
+
+The first term encourages the model to reconstruct the data accurately by maximizing the expected log-likelihood, the second term acts as a regularizer that encourages the approximate posterior to remain close to the prior.
+
+In practice, the ELBO is maximized by minimizing its negative, which becomes the VAE training objective:
+\begin{equation}
+\label{eq:loss_vae}
+    \mathcal{L}_{\text{VAE}}(\boldsymbol{\theta}, \boldsymbol{\phi}, \mathbf{x}) :=
+    - \mathbb{E}_{q_{\boldsymbol{\phi}}(\mathbf{z} | \mathbf{x})} [\log p_{\boldsymbol{\theta}}(\mathbf{x} | \mathbf{z})]
+    + D_{\mathrm{KL}}[ q_{\boldsymbol{\phi}}(\mathbf{z} | \mathbf{x}) \,\|\, p_{\boldsymbol{\theta}}(\mathbf{z})].
+\end{equation}
+
+A common setup in variational autoencoders is to define the variational posterior as
+
+\begin{equation}
+\label{eq:reparam_posterior}
+    q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x}) = \mathcal{N}(\boldsymbol{\mu}_{\boldsymbol{\phi}}(\mathbf{x}), \mathrm{diag}(\boldsymbol{\sigma}_{\boldsymbol{\phi}}^2(\mathbf{x}))),
+\end{equation}
+
+where $\boldsymbol{\mu}_{\boldsymbol{\phi}}(\mathbf{x}) \in \mathbb{R}^d$ and $\log \boldsymbol{\sigma}_{\boldsymbol{\phi}}^2(\mathbf{x}) \in \mathbb{R}^d$ are outputs of the encoder neural network. The variational prior is typically fixed to be a standard normal distribution:
+
+\begin{equation}
+\label{eq:reparam_prior}
+    p_{\boldsymbol{\theta}}(\mathbf{z}) = \mathcal{N}(\mathbf{0}, \mathbf{I}), \quad \text{independent with } \boldsymbol{\theta}.
+\end{equation}
+
+The role of the KL-divergence term in Eq.~(\ref{eq:loss_vae}) is now apparent.
+During training, it regularizes the approximate posterior
+$q_{\phi}(\mathbf{z}\mid\mathbf{x})$ toward the prior
+$p(\mathbf{z})=\mathcal{N}(\mathbf{0},\mathbf{I})$.
+Consequently, the decoder is trained on latent representations that remain
+compatible with this prescribed prior. At generation time, when no input
+$\mathbf{x}$ is available, latent variables can therefore be sampled directly
+from
+
+\begin{equation}
+\mathbf{z} \sim \mathcal{N}(\mathbf{0},\mathbf{I}),
+\end{equation}
+
+and passed through the decoder $p_{\theta}(\mathbf{x}\mid\mathbf{z})$ to
+generate new samples.
+
+To evaluate the KL-divergence term explicitly, consider two arbitrary
+multivariate Gaussian distributions
+$q=\mathcal{N}(\boldsymbol{\mu}_0,\boldsymbol{\Sigma}_0)$ and
+$p=\mathcal{N}(\boldsymbol{\mu}_1,\boldsymbol{\Sigma}_1)$. Their
+KL divergence admits the closed-form expression
+
+\begin{equation}
+\label{eq:dkl_general_gaussians}
+\begin{aligned}
+D_{\mathrm{KL}}(q \| p)
+\\
+&\hspace{-4em}=
+\frac{1}{2}\left[
+\operatorname{tr}(\boldsymbol{\Sigma}_1^{-1}\boldsymbol{\Sigma}_0)
++
+(\boldsymbol{\mu}_1-\boldsymbol{\mu}_0)^T
+\boldsymbol{\Sigma}_1^{-1}
+(\boldsymbol{\mu}_1-\boldsymbol{\mu}_0)
+-d
++
+\log\left(
+\frac{\det\boldsymbol{\Sigma}_1}
+     {\det\boldsymbol{\Sigma}_0}
+\right)
+\right].
+\end{aligned}
+\end{equation}
+
+In our setting,
+$\boldsymbol{\mu}_0=\boldsymbol{\mu}_{\boldsymbol{\phi}}(\mathbf{x})$,
+$\boldsymbol{\Sigma}_0=
+\operatorname{diag}\!\left(
+\boldsymbol{\sigma}_{\boldsymbol{\phi}}^2(\mathbf{x})
+\right)$,
+$\boldsymbol{\mu}_1=\mathbf{0}$, and
+$\boldsymbol{\Sigma}_1=\mathbf{I}$.
+Therefore,
+
+\begin{equation}
+\operatorname{tr}
+\left(
+\boldsymbol{\Sigma}_1^{-1}\boldsymbol{\Sigma}_0
+\right)
+=
+\sum_{j=1}^{d}\sigma_j^2,
+\end{equation}
+
+\begin{equation}
+(\boldsymbol{\mu}_1-\boldsymbol{\mu}_0)^T
+\boldsymbol{\Sigma}_1^{-1}
+(\boldsymbol{\mu}_1-\boldsymbol{\mu}_0)
+=
+\sum_{j=1}^{d}\mu_j^2,
+\end{equation}
+
+and
+
+\begin{equation}
+\log\left(
+\frac{\det\boldsymbol{\Sigma}_1}
+     {\det\boldsymbol{\Sigma}_0}
+\right)
+=
+-\sum_{j=1}^{d}\log\sigma_j^2.
+\end{equation}
+
+Substituting these expressions into the general Gaussian KL-divergence formula in Eq. \ref{eq:dkl_general_gaussians} yields
+
+\begin{equation}
+    D_{\mathrm{KL}} \left[ q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x}) \,\|\, p_{\boldsymbol{\theta}}(\mathbf{z}) \right] = \frac{1}{2} \sum_{j=1}^d \left( \sigma_j^2 + \mu_j^2 - 1 - \log \sigma_j^2 \right).
+\end{equation}
+
+This is the closed-form KL divergence term used in the VAE objective. It is both tractable and differentiable with respect to $\boldsymbol{\phi}$, and can be computed efficiently during training.
+
+While the KL divergence term admits a closed-form solution, the first term in the objective, i.e., $- \mathbb{E}_{q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x})} [\log p_{\boldsymbol{\theta}}(\mathbf{x} \mid \mathbf{z})]$, typically does not. Since this expectation is taken with respect to the encoder distribution \( q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x}) \), which depends on parameters \( \boldsymbol{\phi} \), a naive sampling approach would break the gradient flow. To resolve this, \textcite{kingma2013auto} introduced the \textit{reparameterization trick}, which replaces the sampling process with a deterministic and differentiable function of $\boldsymbol{\phi}$ and an auxiliary random variable $\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$. Specifically, Eq. \ref{eq:reparam_posterior} can be rewritten as:
+
+\begin{equation}
+    \mathbf{z} = \boldsymbol{\mu}_{\boldsymbol{\phi}}(\mathbf{x}) + \boldsymbol{\sigma}_{\boldsymbol{\phi}}(\mathbf{x}) \odot \boldsymbol{\epsilon},
+\end{equation}
+
+where $\odot$ is the element-wise multiplication. The gradient of the ELBO with respect to $\boldsymbol{\phi}$ can be computed by pushing the expectation outside the parameter-dependent terms:
+
+\begin{equation}
+\label{eq:reparam_implication}
+    \nabla_{\boldsymbol{\phi}} \left[ - \mathbb{E}_{q_{\boldsymbol{\phi}}(\mathbf{z} | \mathbf{x})} \left[ \log p_{\boldsymbol{\theta}}(\mathbf{x} | \mathbf{z}) \right] \right]
+    = \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})} \left[ \nabla_{\boldsymbol{\phi}} \left[ - \log p_{\boldsymbol{\theta}}(\mathbf{x} | \mathbf{z}(\boldsymbol{\epsilon}, \mathbf{x})) \right] \right].
+\end{equation}
+
+We can directly minimize $-\mathbb{E}_{q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x})} \left[ \log p_{\boldsymbol{\theta}}(\mathbf{x} \mid \mathbf{z}) \right]$ using Eq.~\ref{eq:reparam_implication} and a gradient-based optimization scheme. In practice, however, it is common to further assume that the reconstruction error follows a Gaussian likelihood, i.e., $\mathbf{x} - \hat{\mathbf{x}} \sim \mathcal{N}(\mathbf{0}, \sigma^2 \mathbf{I})$, where $\hat{\mathbf{x}}(\mathbf{z})$ is the output of the decoder and $\sigma \in \mathbb{R}$ is a fixed constant. This is equivalent to modeling the likelihood as $p_\theta(\mathbf{x} \mid \mathbf{z}) = \mathcal{N}(\mathbf{x}; \, \hat{\mathbf{x}}(\mathbf{z}), \sigma^2 \mathbf{I})$. Under this assumption, the negative log-likelihood simplifies to a scaled mean squared error (MSE) loss:
+
+\begin{equation}
+    -\log p_\theta(\mathbf{x} \mid \mathbf{z}) = \frac{1}{2\sigma^2} \|\mathbf{x} - \hat{\mathbf{x}}\|^2 + \text{const}.
+\end{equation}
+
+Therefore, minimizing the negative log-likelihood is equivalent to minimizing the MSE between the reconstruction and the input, up to a constant scaling factor. This provides a principled justification for the widespread use of MSE in VAE implementations.
+
+In summary, the training and generative procedures of VAE are provided in the following algorithms:
+
+\begin{algorithm}[H]
+\caption{VAE Training Procedure}
+\begin{algorithmic}[0]
+\REQUIRE Dataset $\mathcal{D}$, encoder $q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x})$, decoder $p_{\boldsymbol{\theta}}(\mathbf{x} \mid \mathbf{z})$, loss balancing term $\lambda \in \mathbb{R}^{+}$
+\REPEAT
+    \STATE $\mathbf{x} \in \mathcal{D}$
+    \STATE Encoder: compute $\boldsymbol{\mu}_{\boldsymbol{\phi}}(\mathbf{x})$, $\log \boldsymbol{\sigma}^2_{\boldsymbol{\phi}}(\mathbf{x})$
+    \STATE Sample $\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$ and compute $\mathbf{z} = \boldsymbol{\mu}_{\boldsymbol{\phi}} + \boldsymbol{\sigma}_{\boldsymbol{\phi}} \odot \boldsymbol{\epsilon}$
+    \STATE Decoder: compute $\hat{\mathbf{x}} = p_{\boldsymbol{\theta}}(\mathbf{x} \mid \mathbf{z})$
+    \STATE Take gradient step on:
+    \STATE \quad $\nabla_{\boldsymbol{\theta}, \boldsymbol{\phi}} \left[ \lambda \|\mathbf{x} - \hat{\mathbf{x}}\|^2 + D_{\mathrm{KL}} \left[ q_{\boldsymbol{\phi}}(\mathbf{z} \mid \mathbf{x}) \| p(\mathbf{z}) \right] \right]$
+\UNTIL{converged}
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{VAE Generation Procedure}
+\begin{algorithmic}[0]
+\REQUIRE Trained decoder $p_{\boldsymbol{\theta}}(\mathbf{x} \mid \mathbf{z})$
+\STATE Sample $\mathbf{z} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})$
+\STATE Generate sample $\hat{\mathbf{x}} \sim p_{\boldsymbol{\theta}}(\mathbf{x} \mid \mathbf{z})$
+\end{algorithmic}
+\end{algorithm}
+
+\printbibliography
+\end{document}
