@@ -1647,4 +1647,54 @@ where $L>0$ is the common loss assigned to any incorrect classification. If $\ma
 
 Since $L$ is a positive constant and is the same for every candidate class, minimizing the conditional expected loss is equivalent to maximizing $p(C_j|\mathbf{x})$. Therefore, under equal misclassification losses, the decision rule in Eq.~\ref{eq:c1_minimum_expected_loss_classification_rule} reduces to Eq.~\ref{eq:c1_maximum_posterior_classification_rule}.
 
+\subsection{The Reject Option}
+
+Classification errors are most likely to occur for inputs $\mathbf{x}$ for which no class has a dominant posterior probability. In such regions, the largest value among $\{p(C_1\mid\mathbf{x}),\ldots,p(C_K\mid\mathbf{x})\}$ is substantially below one, indicating considerable uncertainty about the true class. Instead of forcing the classifier to make a decision for every input, we can introduce a \textit{reject option}, under which sufficiently uncertain inputs are left unclassified.
+
+Let
+
+\begin{equation}
+    p_{\max}(\mathbf{x}) = \max_k p(C_k\mid\mathbf{x})
+\end{equation}
+
+denote the largest posterior probability at input $\mathbf{x}$. Given a rejection threshold $\theta$, the classifier makes a class prediction only when $p_{\max}(\mathbf{x}) > \theta$, and rejects the input otherwise. Equivalently, the decision rule can be written as
+
+\begin{equation}
+    \hat{C}(\mathbf{x}) =
+    \begin{cases}
+        \displaystyle \arg\max_{C_k} p(C_k\mid\mathbf{x}), & \text{if } \max_k p(C_k\mid\mathbf{x}) \ge \theta,\\
+        \mathrm{reject}, & \text{otherwise}.
+    \end{cases}
+\end{equation}
+
+The threshold $\theta$ controls the trade-off between the fraction of inputs that can be classified and the uncertainty associated with those decisions. Increasing $\theta$ requires greater posterior confidence before a prediction is accepted, so more inputs are rejected but the remaining accepted classifications tend to have a lower error rate. Conversely, decreasing $\theta$ results in fewer rejections but allows decisions to be made in more uncertain regions of the input space.
+
+Because the posterior probabilities satisfy
+
+\begin{equation}
+    \sum_{k=1}^{K} p(C_k\mid\mathbf{x}) = 1,
+\end{equation}
+
+the largest posterior probability must satisfy
+
+\begin{equation}
+    \max_k p(C_k\mid\mathbf{x}) \geq \frac{1}{K}.
+\end{equation}
+
+Therefore, choosing $\theta < 1/K$ guarantees that no input is rejected, whereas choosing $\theta=1$ causes all inputs to be rejected except the degenerate case in which one posterior probability is exactly one.
+
+The reject option can also be incorporated into the minimum-expected-loss framework by treating rejection as an additional action. Let $L_{kr}$ denote the loss incurred when the true class is $C_k$ and the classifier rejects the input. The conditional expected loss of rejection is then
+
+\begin{equation}
+    R(\mathrm{reject}\mid\mathbf{x}) = \sum_k L_{kr}p(C_k\mid\mathbf{x}).
+\end{equation}
+
+For each input $\mathbf{x}$, the classifier compares this quantity with the conditional expected loss of assigning $\mathbf{x}$ to each class,
+
+\begin{equation}
+    R(C_j\mid\mathbf{x}) = \sum_k L_{kj}p(C_k\mid\mathbf{x}).
+\end{equation}
+
+The input is rejected whenever the expected loss of rejection is smaller than that of every class assignment; otherwise, it is assigned to the class with the smallest conditional expected loss. In this way, rejection provides a principled mechanism for avoiding highly uncertain decisions when the cost of abstaining is smaller than the expected cost of making a potentially incorrect classification.
+
 \end{document}
