@@ -520,7 +520,7 @@ In addition, treating $\mathbf{x}_*$ as a fixed new input means that it provides
 \label{eq:c1_bayes_inference_b}
 \end{equation}
 
-Substituing Eqs.~\ref{eq:c1_bayes_inference_a}--\ref{eq:c1_bayes_inference_b} into Eq.~\ref{eq:c1_bayes_inference}, we obtain
+Substituting Eqs.~\ref{eq:c1_bayes_inference_a}--\ref{eq:c1_bayes_inference_b} into Eq.~\ref{eq:c1_bayes_inference}, we obtain
 
 \begin{equation}
     p(\mathbf{y}_*\mid\mathbf{x}_*,\mathcal{D}) = \int p(\mathbf{y}_*\mid\mathbf{x}_*,\mathbf{w}) p(\mathbf{w}\mid\mathcal{D})\,d\mathbf{w}.
@@ -875,9 +875,9 @@ In chapter 10, we shall see how this result arises automatically when we adopt a
 
 Note that the bias of the maximum likelihood solution becomes less signiﬁcant as the number N of data points increases, and in the limit $N\to\infty$ the maximum likelihood solution for the variance equals the true variance of the distribution that generated the data. In practice, for anything other than small N , this bias will not prove to be a serious problem. However, in more complex models with many parameters, the bias problems associated with maximum likelihood will be much more severe.
 
-\section{Curve fitting revisited}
+\section{Maximum likelihood and maximum a posterior (MAP): a polynomial regression example}
 
-The polynomial curve-fitting problem can be formulated probabilistically by treating the target value $t$ as a random variable whose distribution depends on the input $x$ and the polynomial parameters $\mathbf{w}$. Let
+A polynomial curve-fitting problem can be formulated probabilistically by treating the target value $t$ as a random variable whose distribution depends on the input $x$ and the polynomial parameters $\mathbf{w}$. Let
 
 \begin{equation}
     y(x,\mathbf{w}) = \sum_{j=0}^{M} w_j x^j
@@ -977,7 +977,7 @@ Once $\mathbf{w}_{\mathrm{ML}}$ and $\beta_{\mathrm{ML}}$ have been estimated, p
     p(t\mid x,\mathbf{w}_{\mathrm{ML}},\beta_{\mathrm{ML}}) = \mathcal{N}\left(t;y(x,\mathbf{w}_{\mathrm{ML}}),\beta_{\mathrm{ML}}^{-1}\right).
 \end{equation}
 
-Its mean gives the usual polynomial prediction, and its variance represents uncertainty arising from the assumed observation noise. At this stage, however, the parameters themselves are still represented by single maximum likelihood estimates rather than by probability distributions.
+Its mean gives the usual polynomial prediction, and its variance represents uncertainty arising from the assumed observation noise. At this stage, however, maximum likelihood remains a frequentist method, so the parameters themselves are still represented by point estimates rather than by probability distributions.
 
 A Bayesian treatment introduces a prior distribution over the polynomial coefficients. A common choice is an isotropic zero-mean Gaussian prior,
 
@@ -1053,6 +1053,7 @@ For determining the value of $\mathbf{w}$ that maximizes the posterior, the evid
 
 \begin{equation}
     p(\mathbf{w}\mid\mathbf{x},\mathbf{t},\alpha,\beta)\propto p(\mathbf{t}\mid\mathbf{x},\mathbf{w},\beta)p(\mathbf{w}\mid\alpha).
+\label{eq:c1_posterior_proportional}
 \end{equation}
 
 The \textit{maximum a posteriori (MAP)} estimate is then
@@ -1093,5 +1094,557 @@ Discarding terms that do not depend on $\mathbf{w}$ and dividing the objective b
 where $\lambda=\alpha/\beta$. Thus, maximizing the posterior distribution is equivalent to minimizing a sum-of-squares error with an $L_2$ regularization term, commonly known as \textit{ridge regularization}.
 
 This result is not specific to polynomial curve fitting. More generally, whenever the observation errors are assumed to be independent Gaussian with common variance $\beta^{-1}$ and the model parameters are assigned a zero-mean Gaussian prior with variance $\alpha^{-1}$, MAP estimation leads to an objective consisting of a squared-error term together with an $L_2$ regularization term, with regularization coefficient $\lambda=\beta^{-1}/\alpha^{-1}$. The Gaussian observation model produces the squared-error term through its negative log-likelihood, and the Gaussian parameter prior produces the $L_2$ penalty.
+
+Although MAP is a Bayesian approach because it introduces a prior distribution $p(\mathbf{w}\mid\alpha)$ for the parameters, it still reduces the uncertainty in $\mathbf{w}$ to a single point estimate $\mathbf{w}_{\mathrm{MAP}}$. The next section introduces a full Bayesian approach.
+
+\section{Bayesian curve fitting}
+
+A fully Bayesian treatment differs from maximum likelihood or MAP estimation in that the entire posterior distribution $p(\mathbf{w}\mid\mathbf{x},\mathbf{t})$ is retained and marginalized when making predictions. In the curve-fitting problem, given training inputs $\mathbf{x}=(x_1,\ldots,x_N)^{\mathrm{T}}$, corresponding targets $\mathbf{t}=(t_1,\ldots,t_N)^{\mathrm{T}}$, and a new input $x$, the goal is to determine the predictive distribution of the corresponding target $t$.
+
+Instead of predicting with a single parameter vector such as $\mathbf{w}_{\mathrm{ML}}$ or $\mathbf{w}_{\mathrm{MAP}}$, the predictive distribution is obtained by averaging the predictions associated with all possible parameter values, weighted by their posterior probability.
+
+\begin{equation}
+    p(t\mid x,\mathbf{x},\mathbf{t}) = \int p(t\mid x,\mathbf{w}) p(\mathbf{w}\mid\mathbf{x},\mathbf{t})\,d\mathbf{w}.
+\label{eq:c1_bayesian_predictive_distribution}
+\end{equation}
+
+For polynomial curve fitting, it is convenient to write the model using the feature vector $\boldsymbol{\phi}(x)$ with elements $\phi_i(x) = x^i$ for $i=0,\dots,M$. The Gaussian model now becomes
+
+\begin{equation}
+    p(t\mid x,\mathbf{w},\beta) = \mathcal{N}\left(t;\mathbf{w}^{\mathrm{T}}\boldsymbol{\phi}(x),\beta^{-1}\right),
+\label{eq:c1_polynomial_bayesian_model}
+\end{equation}
+
+For fixed training data $\mathbf{x}$ and $\mathbf{t}$, the model in Eq.~\ref{eq:c1_polynomial_bayesian_model} is viewed as a function of $\mathbf{w}$ and $\beta$, giving the likelihood.
+
+\begin{equation}
+    p(\mathbf{t}\mid\mathbf{x},\mathbf{w},\beta) = \prod_{n=1}^{N}\mathcal{N}\left(t_n;\mathbf{w}^{\mathrm{T}}\boldsymbol{\phi}(x_n),\beta^{-1}\right).
+\end{equation}
+
+The Gaussian prior is
+
+\begin{equation}
+    p(\mathbf{w}\mid\alpha) = \mathcal{N}\left(\mathbf{w};\mathbf{0},\alpha^{-1}\mathbf{I}\right).
+\end{equation}
+
+Similar to Eq.~\ref{eq:c1_gaussian_likelihood} and Eq.~\ref{eq:c1_gaussian_prior}, the likelihood and the prior can be written, up to factors independent of $\mathbf{w}$, as
+
+\begin{equation}
+    p(\mathbf{t}\mid\mathbf{x},\mathbf{w},\beta)\propto\exp\left[-\frac{\beta}{2}\sum_{n=1}^{N}\left(t_n-\mathbf{w}^{\mathrm{T}}\boldsymbol{\phi}(x_n)\right)^2\right]
+\end{equation}
+
+and
+
+\begin{equation}
+    p(\mathbf{w}\mid\alpha)\propto\exp\left(-\frac{\alpha}{2}\mathbf{w}^{\mathrm{T}}\mathbf{w}\right).
+\end{equation}
+
+The posterior is proportional to the product of the likelihood and the prior (Eq.~\ref{eq:c1_posterior_proportional}), therefore
+
+\begin{equation}
+    p(\mathbf{w}\mid\mathbf{x},\mathbf{t},\alpha,\beta)\propto\exp\left[-\frac{1}{2}\left\{\beta\sum_{n=1}^{N}\left(t_n-\mathbf{w}^{\mathrm{T}}\boldsymbol{\phi}(x_n)\right)^2 + \alpha\mathbf{w}^{\mathrm{T}}\mathbf{w}\right\}\right].
+\end{equation}
+
+Expand the squared residual,
+
+\begin{equation}
+    \left(t_n-\mathbf{w}^{\mathrm{T}}\boldsymbol{\phi}(x_n)\right)^2 = t_n^2 - 2t_n\mathbf{w}^{\mathrm{T}}\boldsymbol{\phi}(x_n) + \mathbf{w}^{\mathrm{T}}\boldsymbol{\phi}(x_n)\boldsymbol{\phi}(x_n)^{\mathrm{T}}\mathbf{w}.
+\end{equation}
+
+Summing over all observations and multiplyig with $\beta$ give
+
+\begin{equation}
+\begin{aligned}
+    \beta\sum_{n=1}^{N}\left(t_n-\mathbf{w}^{\mathrm{T}}\boldsymbol{\phi}(x_n)\right)^2
+    &=
+    \beta\sum_{n=1}^{N}t_n^2 -2\beta\mathbf{w}^{\mathrm{T}}\sum_{n=1}^{N}\boldsymbol{\phi}(x_n)t_n \\
+    &\quad+
+    \beta\mathbf{w}^{\mathrm{T}}\left[\sum_{n=1}^{N}\boldsymbol{\phi}(x_n)\boldsymbol{\phi}(x_n)^{\mathrm{T}}\right]\mathbf{w}.
+\end{aligned}
+\end{equation}
+
+Substituting this expansion into the posterior exponent and dropping the term $\beta\sum_{n=1}^{N}t_n^2$ that does not depend on $\mathbf{w}$ gives
+
+\begin{equation}
+\begin{aligned}
+    p(\mathbf{w}\mid\mathbf{x},\mathbf{t},\alpha,\beta)
+    &\propto \exp\left[-\frac{1}{2}\left\{
+    \mathbf{w}^{\mathrm{T}}\left(\alpha\mathbf{I}+\beta\sum_{n=1}^{N}\boldsymbol{\phi}(x_n)\boldsymbol{\phi}(x_n)^{\mathrm{T}}\right)\mathbf{w}\right.\right. \\
+    &\qquad\qquad\qquad\qquad\quad
+    \left.\left.-2\beta\mathbf{w}^{\mathrm{T}}\sum_{n=1}^{N}\boldsymbol{\phi}(x_n)t_n
+    \right\}\right].
+\end{aligned}
+\end{equation}
+
+Define
+
+\begin{equation}
+    \mathbf{S}^{-1} = \alpha\mathbf{I} + \beta\sum_{n=1}^{N}\boldsymbol{\phi}(x_n)\boldsymbol{\phi}(x_n)^{\mathrm{T}}.
+\end{equation}
+
+At this point, the posterior has the form
+
+\begin{equation}
+    p(\mathbf{w}\mid\mathbf{x},\mathbf{t},\alpha,\beta)\propto\exp
+    \left[-\frac{1}{2}
+    \left(\mathbf{w}^{\mathrm{T}}\mathbf{S}^{-1}\mathbf{w} - 2\beta\mathbf{w}^{\mathrm{T}}\sum_{n=1}^{N}\boldsymbol{\phi}(x_n)t_n\right)
+    \right].
+\end{equation}
+
+We now want to rewrite the expression inside the exponential as a quadratic centered at some vector $\mathbf{m}_N$. We introduce $\mathbf{m}_N$ as the vector that will become the center, and therefore the mean, of the posterior Gaussian. A quadratic centered at $\mathbf{m}_N$ has the form
+
+\begin{equation}
+    (\mathbf{w}-\mathbf{m}_N)^{\mathrm{T}}\mathbf{S}^{-1}(\mathbf{w}-\mathbf{m}_N).
+\end{equation}
+
+Expanding this expression gives
+
+\begin{equation}
+\begin{aligned}
+    (\mathbf{w}-\mathbf{m}_N)^{\mathrm{T}}\mathbf{S}^{-1}(\mathbf{w}-\mathbf{m}_N)
+    &=
+    \mathbf{w}^{\mathrm{T}}\mathbf{S}^{-1}\mathbf{w} - \mathbf{w}^{\mathrm{T}}\mathbf{S}^{-1}\mathbf{m}_N \\
+    &\quad
+    - \mathbf{m}_N^{\mathrm{T}}\mathbf{S}^{-1}\mathbf{w} + \mathbf{m}_N^{\mathrm{T}}\mathbf{S}^{-1}\mathbf{m}_N.
+\end{aligned}
+\end{equation}
+
+Because $\mathbf{m}_N^{\mathrm{T}}\mathbf{S}^{-1}\mathbf{w}$ is a scalar, its tranpose is equal to itself, and because $\mathbf{S}^{-1}$ is symmetric,
+
+\begin{equation}
+    \mathbf{m}_N^{\mathrm{T}}\mathbf{S}^{-1}\mathbf{w} = \mathbf{w}^{\mathrm{T}}\mathbf{S}^{-1}\mathbf{m}_N,
+\end{equation}
+
+so
+
+\begin{equation}
+    (\mathbf{w}-\mathbf{m}_N)^{\mathrm{T}}\mathbf{S}^{-1}(\mathbf{w}-\mathbf{m}_N) = \mathbf{w}^{\mathrm{T}}\mathbf{S}^{-1}\mathbf{w} - 2\mathbf{w}^{\mathrm{T}}\mathbf{S}^{-1}\mathbf{m}_N + \mathbf{m}_N^{\mathrm{T}}\mathbf{S}^{-1}\mathbf{m}_N.
+\end{equation}
+
+We now choose $\mathbf{m}_N$ so that the linear term in $\mathbf{w}$ matches the linear term in the posterior. To let
+
+\begin{equation}
+    -2\mathbf{w}^{\mathrm{T}}\mathbf{S}^{-1}\mathbf{m}_N = -2\beta\mathbf{w}^{\mathrm{T}}\sum_{n=1}^{N}\boldsymbol{\phi}(x_n)t_n,
+\end{equation}
+
+we require
+
+\begin{equation}
+    \mathbf{S}^{-1}\mathbf{m}_N = \beta\sum_{n=1}^{N}\boldsymbol{\phi}(x_n)t_n.
+\end{equation}
+
+Multiplying both sides by $\mathbf{S}$ gives
+
+\begin{equation}
+    \mathbf{m}_N = \beta\mathbf{S}\sum_{n=1}^{N}\boldsymbol{\phi}(x_n)t_n.
+\end{equation}
+
+Thus, $\mathbf{m}_N$ is chosen precisely so that the original quadratic expression in $\mathbf{w}$ can be written as a quadratic centered at $\mathbf{m}_N$. Using this choice,
+
+\begin{equation}
+\begin{aligned}
+    \mathbf{w}^{\mathrm{T}}\mathbf{S}^{-1}\mathbf{w} - 2\beta\mathbf{w}^{\mathrm{T}}\sum_{n=1}^{N}\boldsymbol{\phi}(x_n)t_n
+    &=
+    (\mathbf{w}-\mathbf{m}_N)^{\mathrm{T}}\mathbf{S}^{-1}(\mathbf{w}-\mathbf{m}_N) \\
+    &\quad
+    -\mathbf{m}_N^{\mathrm{T}}\mathbf{S}^{-1}\mathbf{m}_N.
+\end{aligned}
+\end{equation}
+
+The final term does not depend on $\mathbf{w}$, so it is absorbed into the normalization constant. Therefore,
+
+\begin{equation}
+    p(\mathbf{w}\mid\mathbf{x},\mathbf{t},\alpha,\beta)\propto\exp\left[-\frac{1}{2}(\mathbf{w}-\mathbf{m}_N)^{\mathrm{T}}\mathbf{S}^{-1}(\mathbf{w}-\mathbf{m}_N)\right].
+\end{equation}
+
+This is the form of a multivariate Gaussian centered at $\mathbf{m}_N$. Hence,
+
+\begin{equation}
+    p(\mathbf{w}\mid\mathbf{x},\mathbf{t},\alpha,\beta) = \mathcal{N}\left(\mathbf{w};\mathbf{m}_N,\mathbf{S}\right),
+\label{eq:c1_parameter_bayesian_posterior}
+\end{equation}
+
+so $\mathbf{m}_N$ is the posterior mean and $\mathbf{S}$ is the posterior covariance.
+
+Substituting the Gaussian observation model and Gaussian posterior into the predictive distribution in Eq.~\ref{eq:c1_bayesian_predictive_distribution} gives
+
+\begin{equation}
+    p(t\mid x,\mathbf{x},\mathbf{t}) = \int\mathcal{N}\left(t;\mathbf{w}^{\mathrm{T}}\boldsymbol{\phi}(x),\beta^{-1}\right)\mathcal{N}\left(\mathbf{w};\mathbf{m}_N,\mathbf{S}\right)\,d\mathbf{w},
+\end{equation}
+
+For a fixed input $x$, the feature vector $\boldsymbol{\phi}(x)$ is fixed. Because the posterior distribution of $\mathbf{w}$ is a Gaussian given in Eq.~\ref{eq:c1_parameter_bayesian_posterior}, a linear transformation of $\mathbf{w}$ is also a Gaussian,
+
+\begin{equation}
+    p(\mathbf{w}^{\mathrm{T}}\boldsymbol{\phi}(x)\mid\mathbf{x},\mathbf{t},\alpha,\beta) = \mathcal{N} \left(\mathbf{w}^{\mathrm{T}}\boldsymbol{\phi}(x); \mathbf{m}_N^{\mathrm{T}}\boldsymbol{\phi}(x),\boldsymbol{\phi}(x)^{\mathrm{T}}\mathbf{S}\boldsymbol{\phi}(x)\right).
+\label{eq:c1_feature_posterior}
+\end{equation}
+
+To see where these parameters come from, the mean of the transformed variable is
+
+\begin{equation}
+    \mathbb{E}_{\mathbf{w}}\left[\mathbf{w}^{\mathrm{T}}\boldsymbol{\phi}(x)\right] = \mathbb{E}_{\mathbf{w}}[\mathbf{w}]^{\mathrm{T}} \boldsymbol{\phi}(x) = \mathbf{m}_N^{\mathrm{T}}\boldsymbol{\phi}(x),
+\end{equation}
+
+and its variance is
+
+\begin{equation}
+    \operatorname{var}_{\mathbf{w}}\left[\mathbf{w}^{\mathrm{T}}\boldsymbol{\phi}(x)\right] = \boldsymbol{\phi}(x)^{\mathrm{T}}\operatorname{cov}[\mathbf{w}]\boldsymbol{\phi}(x) = \boldsymbol{\phi}(x)^{\mathrm{T}}\mathbf{S}\boldsymbol{\phi}(x).
+\end{equation}
+
+When we rewrite the Gaussian model in Eq.~\ref{eq:c1_polynomial_bayesian_model} as
+
+\begin{equation}
+    t(x) = \mathbf{w}^{\mathrm{T}}\boldsymbol{\phi}(x) + \epsilon, \qquad \mathrm{with} \quad \epsilon \sim \mathcal{N}(0,\beta^{-1}),
+\end{equation}
+
+We see that $t(x)$ is the sum of two independent Gaussian random variables, with the distribution of $\mathbf{w}^{\mathrm{T}}\boldsymbol{\phi}(x)$ given in Eq.~\ref{eq:c1_feature_posterior}. Therefore, $t(x)$ is itself Gaussian.
+
+The predictive mean is:
+
+\begin{equation}
+    m(x) = \mathbb{E}[t(x)] = \mathbf{m}_N^{\mathrm{T}}\boldsymbol{\phi}(x) + 0 = \beta\boldsymbol{\phi}(x)^{\mathrm{T}}\mathbf{S}\sum_{n=1}^{N}\boldsymbol{\phi}(x_n)t_n.
+\label{eq:c1_bayesian_predictive_distribution_mean}
+\end{equation}
+
+Similarly, because the two terms are independent, their variances add,
+
+\begin{equation}
+    s^2(x) = \operatorname{var}[t(x)] = \operatorname{var}\left[\mathbf{w}^{\mathrm{T}}\boldsymbol{\phi}(x)\right] + \operatorname{var}[\epsilon] = \boldsymbol{\phi}(x)^{\mathrm{T}}\mathbf{S}\boldsymbol{\phi}(x) + \beta^{-1}.
+\label{eq:c1_bayesian_predictive_distribution_var}
+\end{equation}
+
+Therefore, the predictive distribution becomes
+
+\begin{equation}
+    p(t\mid x,\mathbf{x},\mathbf{t}) = \mathcal{N}\left(t;m(x),s^2(x)\right),
+\end{equation}
+
+where $m(x)$ and $s^2(x)$ are given in Eq.~\ref{eq:c1_bayesian_predictive_distribution_mean} and Eq.~\ref{eq:c1_bayesian_predictive_distribution_var}
+
+The predictive variance has two distinct sources,
+
+\begin{equation}
+    s^2(x) = \underbrace{\boldsymbol{\phi}(x)^{\mathrm{T}}\mathbf{S}\boldsymbol{\phi}(x)}_{\text{parameter uncertainty}} + \underbrace{\beta^{-1}}_{\text{observation noise}}.
+\end{equation}
+
+This decomposition is a key distinction between point-estimate and fully Bayesian prediction. A maximum likelihood prediction with fixed $\mathbf{w}_{\mathrm{ML}}$ accounts only for observation noise, whereas the Bayesian predictive distribution additionally accounts for uncertainty in the model parameters. As more informative training data are observed, the posterior covariance $\mathbf{S}$ of the parameter typically decreases, reducing the contribution from parameter uncertainty while the irreducible observation-noise variance $\beta^{-1}$ remains.
+
+\section{Model Selection}
+
+Model selection concerns choosing the model class and its effective complexity. Because training error is optimistically biased and generally decreases as model flexibility increases, model selection must be based on data not used to fit the candidate model.
+
+When data is scarce, a common procedure is to first split the full data set into a \textit{training set} and a held-out \textit{test set}. Model selection is then performed using only the training set. With $S$-fold cross-validation, the training set is partitioned into $S$ folds; for each fold, the model is fitted on $S-1$ folds and evaluated on the remaining fold. If $E_s$ denotes the validation error on fold $s$, the cross-validation estimate is
+
+\begin{equation}
+    E_{\mathrm{CV}} = \frac{1}{S}\sum_{s=1}^{S} E_s.
+\end{equation}
+
+After selecting the model, it is typically refitted using the entire training set and evaluated once on the held-out test set.
+
+The special case $S=N$, where $N$ is the number of training observations, is \textit{leave-one-out cross-validation}. The main disadvantage of cross-validation is computational cost since every candidate model must be trained $S$ times.
+
+An alternative is to augment goodness of fit with an explicit complexity penalty. For example, the Akaike information criterion can be written as
+
+\begin{equation}
+    \mathrm{AIC} = -2\ln p(\mathcal{D}\mid\mathbf{w}_{\mathrm{ML}}) + 2M,
+\end{equation}
+
+where $M$ is the number of trainable parameters. The negative log-likelihood term rewards fit to the observed data, while the second term penalizes model complexity.
+
+A variant of this quantity, called the \textit{Bayesian information criterion (BIC)}, will be discussed in Chapter 4. A fully Bayesian approach to model comparison, introduced in Chapter 3, provides a more principled treatment of model selection by integrating over parameter uncertainty, so that model complexity is controlled implicitly rather than through an explicit penalty term.
+
+\section{The curse of dimensionality}
+
+In practical pattern-recognition problems, the input $\mathbf{x}$ is often high-dimensional. As the dimensionality $D$ increases, the volume of the input space grows extremely rapidly, so a fixed number of training observations becomes increasingly sparse relative to the space that must be represented. This phenomenon is known as the \textit{curse of dimensionality}.
+
+A simple illustration is obtained by partitioning each input dimension into $K$ intervals. In one dimension this produces $K$ cells, in two dimensions $K^2$ cells, and in $D$ dimensions
+
+\begin{equation}
+    N_{\mathrm{cells}} = K^D.
+\end{equation}
+
+Thus, maintaining the same spatial resolution in every dimension requires a number of cells that grows exponentially with $D$. A classifier that assigns a test point according to the training observations lying in the same cell therefore requires an exponentially increasing amount of data merely to prevent most cells from becoming empty. Local methods based on nearby observations encounter the same underlying problem because neighborhoods become increasingly sparsely populated as $D$ grows.
+
+The curse of dimensionality also appears in parametric models because the number of distinct terms needed to represent interactions among the input variables can grow very rapidly with the input dimension $D$. Suppose that
+
+\begin{equation}
+    \mathbf{x} = (x_1,\ldots,x_D)^{\mathrm{T}}
+\end{equation}
+
+contains $D$ input variables, and consider a polynomial model containing all terms up to total degree three,
+
+\begin{equation}
+    y(\mathbf{x},\mathbf{w}) = w_0 + \sum_{i=1}^{D} w_i x_i + \sum_{i=1}^{D}\sum_{j=1}^{D} w_{ij}x_i x_j + \sum_{i=1}^{D}\sum_{j=1}^{D}\sum_{k=1}^{D}w_{ijk}x_i x_j x_k.
+\end{equation}
+
+The linear part contains $D$ distinct terms,
+
+\begin{equation}
+    x_1,\;x_2,\;\ldots,\;x_D.
+\end{equation}
+
+At first sight, the quadratic double sum appears to contain $D^2$ terms because there are $D$ possible values for $i$ and $D$ possible values for $j$. However, products such as $x_i x_j$ are invariant under permutations of their indices. Thus, their coefficients can be combined into a single coefficient. As a result, there are $D$ squared terms and $\binom{D}{2}$ pairwise interaction terms, giving
+
+\begin{equation}
+    N_2 = D+\binom{D}{2} = D + \frac{D(D-1)}{2} = \binom{D+1}{2}
+\end{equation}
+
+distinct monomials of degree two.
+
+More generally, a monomial of total degree $m$ in $D$ variables has the form
+
+\begin{equation}
+    x_1^{a_1}x_2^{a_2}\cdots x_D^{a_D}, \qquad a_i \in \{0,1,2,\ldots,m\}.
+\end{equation}
+
+subject to
+
+\begin{equation}
+\sum_{i=1}^{D} a_i=m.
+\end{equation}
+
+The number of nonnegative integer solutions to this equation is
+
+\begin{equation}
+    N_m = \binom{D+m-1}{m}.
+\end{equation}
+
+If the polynomial contains all monomials from degree $0$ through degree $M$, the total number of independent coefficients is therefore
+
+\begin{equation}
+    N_{\mathrm{coeff}} = \sum_{m=0}^{M}\binom{D+m-1}{m} = \binom{D+M}{M}.
+\end{equation}
+
+For a cubic polynomial, $M=3$, so
+
+\begin{equation}
+    N_{\mathrm{coeff}} = \binom{D+3}{3} = \frac{(D+3)(D+2)(D+1)}{6}.
+\end{equation}
+
+Thus, even though the compact polynomial expression contains sums with $D$, $D^2$, and $D^3$ indexed terms, the number of  coefficients is smaller. Nevertheless, the number of coefficients still grows rapidly with dimension $D$. When $D$ is large compared with a fixed polynomial order $M$, each factor in the numerator is approximately $D$, giving
+
+\begin{equation}
+    \binom{D+M}{M} \sim \frac{D^M}{M!}.
+\end{equation}
+
+Hence, for a fixed polynomial order $M$, the number of parameters grows approximately as $D^M$. The growth is therefore polynomial rather than exponential in $D$. However, it can still become prohibitively large even for moderately high-dimensional inputs.
+
+This exmaple is one manifestation of the curse of dimensionality. Increasing the number of input variables does not merely enlarge the input space; it can also cause the number of parameters required to represent interactions among those variables to grow combinatorially. As the number of parameters increases, more data are generally required for reliable estimation and it increases both the computational cost and the risk of overfitting.
+
+A closely related high-dimensional effect appears even for a simple isotropic Gaussian distribution. Consider the $D$-dimensional standard Gaussian
+
+\begin{equation}
+    p(\mathbf{x}) = \frac{1}{(2\pi)^{D/2}}\exp\left(-\frac{1}{2}\mathbf{x}^{\mathrm{T}}\mathbf{x}\right),
+\end{equation}
+
+where $\mathbf{x}\in\mathbb{R}^D$. The distance of $\mathbf{x}$ from the origin is
+
+\begin{equation}
+    r = \|\mathbf{x}\| = \sqrt{\mathbf{x}^{\mathrm{T}}\mathbf{x}}.
+\end{equation}
+
+The density at any individual point depends only on its distance from the origin,
+
+\begin{equation}
+    p(\mathbf{x}) = \frac{1}{(2\pi)^{D/2}}\exp\left(-\frac{r^2}{2}\right).
+\end{equation}
+
+The density is therefore largest at $r=0$ and decreases exponetially as $r$ increases. However, this does not mean that most of the probability mass lies near the origin. The reason is that probability mass depends on both the density at each point and the number of points available at a given radius.
+
+To see this, consider a thin spherical shell with radius $r$ and thickness $dr$. All points in this shell have approximately the same Gaussian density because they have approximately the same value of $r$. The probability mass in the shell is therefore approximately
+
+\begin{equation}
+    p_r(r)\,dr = p(\mathbf{x}) \times \text{surface area of the sphere at radius } r \times dr.
+\end{equation}
+
+The surface area of a $D$-dimensional sphere of radius $r$ is
+
+\begin{equation}
+    A_D(r) = \frac{2\pi^{D/2}}{\Gamma(D/2)} r^{D-1}.
+\end{equation}
+
+Therefore,
+
+\begin{align}
+    p_r(r)
+    &= A_D(r)\frac{1}{(2\pi)^{D/2}}\exp\left(-\frac{r^2}{2}\right) \\
+    &= \frac{1}{2^{D/2-1}\Gamma(D/2)}r^{D-1}\exp\left(-\frac{r^2}{2}\right), \qquad r\geq 0.
+\end{align}
+
+The Gaussian factor $\exp(-r^2/2)$ decreases as $r$ increases, because individual points farther from the origin have lower density. In contrast, the geometric factor $r^{D-1}$ increases rapidly with $r$, because the surface area of a high-dimensional sphere increases rapidly with radius. The radial probability density $p_r(r)$ is determined by the competition between these two effects.
+
+To find the radius at which the probability mass is most concentrated, we maximize $p_r(r)$. This is equivalent to maximizing its logarithm,
+
+\begin{equation}
+    \ln p_r(r) = (D-1)\ln r - \frac{r^2}{2} + \mathrm{const}.
+\end{equation}
+
+Differentiating with respect to $r$ gives
+
+\begin{equation}
+    \frac{d}{dr}\ln p_r(r) = \frac{D-1}{r} - r.
+\end{equation}
+
+Setting the derivative equal to zero gives
+
+\begin{equation}
+    r_{\mathrm{mode}} = \sqrt{D-1}.
+\end{equation}
+
+For $D=1$, the probability mass is concentrated most strongly at the center, $r=0$. For $D=2$, the largest amount of probability mass per small change in radius lies on a ring at $r=1$. In higher dimensions, most of the probability mass is concentrated in a thin spherical shell located farther from the origin at $r=\sqrt{D-1}$. Although each individual point in this thin shell has a much lower density than the origin, the shell contains vastly more points, so it contains much more total probability mass.
+
+The curse of dimensionality does not, however, imply that learning from high-dimensional data is necessarily impossible. The key reason is that real data often do not occupy the entire $D$-dimensional space. Instead, they may be concentrated near a much lower-dimensional subset. If the possible observations can be described by only $d$ independent degrees of freedom, with $d\ll D$, then the data may lie approximately on a $d$-dimensional manifold embedded in $\mathbb{R}^D$. The quantity $d$ is referred to as the \textit{intrinsic dimensionality} of the data.
+
+For example, an image containing $D$ pixels can be represented as
+
+\begin{equation}
+    \mathbf{x} = (x_1,\ldots,x_D)^{\mathrm{T}},
+\end{equation}
+
+so the image is formally a point in $\mathbb{R}^D$. However, suppose all images contain the same object and differ only in horizontal position, vertical position, and orientation. Although the pixel representation may have thousands of dimensions, the variability among the images is controlled primarily by only three quantities. The set of valid images might therefore occupy a structure with intrinsic dimension close to three within the much larger pixel space. This distinction is important because a learning algorithm need not model the entire space $\mathbb{R}^D$, but only the much smaller structure in which the data are concentrated. Modern dimensionality-reduction and representation-learning methods attempt to discover or exploit such low-dimensional structure.
+
+A second property that can reduce the practical severity of the curse of dimensionality is \textit{smoothness}. Suppose that a target is represented by a function $f(\mathbf{x})$. A smoothness assumption states, roughly, that nearby inputs tend to produce similar outputs,
+
+\begin{equation}
+\|\mathbf{x}-\mathbf{x}'\|\ \text{small}
+\quad\Longrightarrow\quad
+|f(\mathbf{x})-f(\mathbf{x}')|\ \text{small}.
+\end{equation}
+
+Under this assumption, observing the target at one point provides useful information about the target at nearby points. Therefore, smoothness allows nearby observations to share predictive information.
+
+\textit{Sparsity} assumes that only a relatively small subset of the available variables, features, or model parameters is needed to describe the relevant structure in the data. For example, even if an input $\mathbf{x}\in\mathbb{R}^D$ contains a very large number of features, the target may depend strongly on only a small subset of them. Similarly, a model may contain a large parameter vector $\mathbf{w}$ while only a small number of entries are substantially different from zero. By reducing the number of active variables or parameters, sparsity lowers the effective number of degrees of freedom that must be estimated from data and can improve generalization. Common mechanisms for encouraging sparsity include feature selection and regularization methods such as $L_1$ regularization.
+
+\textit{Locality} assumes that interactions are strongest among inputs that are close according to some appropriate notion of neighborhood, while distant inputs interact weakly or not at all. This reduces the need to model arbitrary interactions among all components of a high-dimensional input. For example, in an image, nearby pixels are often much more strongly related than pixels located far apart. A model can therefore restrict each unit to operate only on a local region rather than on the entire input. If each local computation involves only $k$ nearby variables with $k\ll D$, then the effective dimensionality of each interaction is much smaller than the full ambient dimension. Locality is exploited explicitly in methods such as convolutional neural networks, nearest-neighbor methods, and local kernel models.
+
+\textit{Parameter sharing} reduces model complexity by using the same parameters across multiple locations or parts of the input rather than learning a separate set of parameters for each one. Convolutional neural networks provide a standard example, where the same convolutional filter is repeatedly applied across the entire spatial domain. This substantially reduces the number of trainable parameters, imposes useful structural constraints on the model, and allows knowledge learned in one region of the input to generalize to other regions.
+
+Therefore, successful learning in high-dimensional spaces generally relies on some form of structure or property in the data and/or model. It could include low intrinsic dimensionality, smoothness, sparsity, locality, parameter sharing, and other constraints that reduce the effective complexity of the learning problem relative to the nominal ambient dimension $D$.
+
+\section{Decision Theory}
+
+Probability theory provides a mathematical framework for representing and manipulating uncertainty, but in many pattern recognition problems the ultimate objective is not merely to estimate probabilities. Instead, we must use those probabilities to make a decision. Decision theory provides the framework for selecting an action when the quantities of interest are uncertain, thereby connecting probabilistic inference with prediction and decision making.
+
+Suppose we observe an input vector $\mathbf{x}$ and wish to predict a corresponding target variable $t$. In regression problems, $t$ is typically continuous, whereas in classification problems it represents a discrete class label. The joint distribution $p(\mathbf{x},t)$ provides a complete probabilistic description of the relationship between inputs and targets. Estimating such a distribution from training data is an \textit{inference} problem. Once the relevant probability distribution has been obtained, however, we must still determine what prediction or action should be taken for a particular input $\mathbf{x}$. This second stage is the \textit{decision} problem.
+
+For classification, suppose the target belongs to one of $K$ classes $\{C_1,\ldots,C_K\}$. Given an observed input $\mathbf{x}$, Bayes' theorem gives the posterior probability of class $C_k$ as
+
+\begin{equation}
+    p(C_k\mid\mathbf{x}) = \frac{p(\mathbf{x}\mid C_k)p(C_k)}{p(\mathbf{x})} = \frac{p(\mathbf{x}\mid C_k)p(C_k)}{\sum_{j=1}^{K} p(\mathbf{x}\mid C_j)p(C_j)}.
+\end{equation}
+
+Here, $p(C_k)$ is the prior probability of class $C_k$, representing our uncertainty about the class before observing $\mathbf{x}$. The likelihood $p(\mathbf{x}\mid C_k)$ describes how probable the observed input is under class $C_k$. The posterior probability $p(C_k\mid\mathbf{x})$ is the probability of class $C_k$ after incorporating the information contained in $\mathbf{x}$. The denominator normalizes the posterior probabilities so that they sum to one over all classes.
+
+The posterior probabilities themselves do not yet specify what action should be taken. A decision rule must map the observed input, or equivalently the posterior probabilities associated with that input, to a particular action. In the simplest classification setting, where every incorrect classification is treated equally, we will show that minimizing the expected loss is equivalent to assigning $\mathbf{x}$ to the class with the largest posterior probability. In many applications, the appropriate decision rule depends not only on the posterior probabilities, but also on the loss associated with each possible error. When different misclassifications have different consequences, the optimal decision is therefore the one that minimizes the expected loss rather than simply the probability of error.
+
+\subsection{Minimizing the Misclassification Rate}
+
+We first assume that all types of errors have the same consequence. As a result, the objective of a classification problem is to minimize the probability of assigning an input to the wrong class. A decision rule assigns every possible input $\mathbf{x}$ to one of the $K$ classes $\{C_1,\ldots,C_K\}$. This partitions the input space into \textit{decision regions} $\{\mathcal{R}_1,\ldots,\mathcal{R}_K\}$, where every $\mathbf{x}\in\mathcal{R}_k$ is assigned to class $C_k$. The boundaries separating these regions are called \textit{decision boundaries} or \textit{decision surfaces}.
+
+Now consider all inputs that fall in a particular region $\mathcal{R}_k$. The classifier assigns all of these inputs to class $C_k$. A classification error occurs whenever the true class is some $C_j$ with $j\neq k$. For one such class $C_j$, the probability of this type of error is
+
+\begin{equation}
+    p(\mathbf{x}\in\mathcal{R}_k,C_j) = \int_{\mathcal{R}_k}p(\mathbf{x},C_j)\,d\mathbf{x}.
+\end{equation}
+
+Because the true class could be any of the remaining $K-1$ classes, the contribution of region $\mathcal{R}_k$ to the total probability of misclassification is
+
+\begin{equation}
+    \sum_{j\neq k}\int_{\mathcal{R}_k}p(\mathbf{x},C_j)\,d\mathbf{x} = \int_{\mathcal{R}_k}\sum_{j\neq k}p(\mathbf{x},C_j)\,d\mathbf{x}.
+\end{equation}
+
+Finally, summing this error probability over all decision regions gives the total probability of misclassification,
+
+\begin{equation}
+    p(\mathrm{mistake}) = \sum_{k=1}^{K}\int_{\mathcal{R}_k}\sum_{j\neq k}p(\mathbf{x},C_j)\,d\mathbf{x}.
+\end{equation}
+
+Because we place no restrictions on the form of the decision rule, the class assigned at one value of $\mathbf{x}$ can be chosen independently of the class assigned at another value of $\mathbf{x}$. The collection of these individual assignments then determines the decision regions. For a given $\mathbf{x}$, we choose the class $C_k$ that minimize the local contribution to the misclassification probability
+
+\begin{equation}
+    \sum_{j\neq k} p(\mathbf{x},C_j) = p(\mathbf{x})-p(\mathbf{x},C_k).
+\end{equation}
+
+Because $p(\mathbf{x})$ is the same for every class at a fixed $\mathbf{x}$, minimizing this error contribution is equivalent to maximizing $p(\mathbf{x},C_k)$. Thus, each $\mathbf{x}$ should be assigned to the class with the largest joint probability,
+
+\begin{equation}
+    \hat{C}(\mathbf{x}) = \arg\max_{C_k} p(\mathbf{x},C_k).
+\end{equation}
+
+Using the product rule,
+
+\begin{equation}
+    p(\mathbf{x},C_k) = p(C_k\mid\mathbf{x})p(\mathbf{x}),
+\end{equation}
+
+and again, because $p(\mathbf{x})$ does not depend on the class $C_k$, maximizing the joint probability $p(\mathbf{x},C_k)$ is equivalent to maximizing the posterior probability $p(C_k\mid\mathbf{x})$. Hence, the decision rule that minimizes the misclassification probability becomes
+
+\begin{equation}
+    \hat{C}(\mathbf{x}) = \arg\max_{C_k} p(C_k\mid\mathbf{x}).
+\label{eq:c1_maximum_posterior_classification_rule}
+\end{equation}
+
+The probability of making a correct classification is
+
+\begin{equation}
+    p(\mathrm{correct}) = \sum_{k=1}^{K}p(\mathbf{x}\in\mathcal{R}_k,C_k) = \sum_{k=1}^{K}\int_{\mathcal{R}_k}p(\mathbf{x},C_k)\,d\mathbf{x}.
+\end{equation}
+
+It can also be shown that maximizing $p(\mathrm{correct})$ is equivalent to minimizing $p(\mathrm{mistake})$. In both cases, the optimal decision is obtained by assigning $\mathbf{x}$ to the class with the largest posterior probability, as in Eq.~\ref{eq:c1_maximum_posterior_classification_rule}. The resulting decision boundaries occur where the posterior probabilities of competing classes are equal.
+
+\subsection{Minimizing the Expected Loss}
+
+To account for different consequences associated with different types of errors, we introduce a \textit{loss function}. Suppose that the true class is $C_k$ and the classifier assigns the input $\mathbf{x}$ to class $C_j$. We denote the loss associated with this outcome by $L_{kj}$. The collection of these values forms a \textit{loss matrix}, where the element $L_{kj}$ specifies the cost of assigning an observation from the true class $C_k$ to class $C_j$. Typically, $L_{kk}=0$ if a correct classification incurs no loss, whereas the off-diagonal elements are postive and may differ depending on the consequences of different types of misclassification.
+
+Let $\mathcal{R}_j$ denote the decision region for class $C_j$, so that every $\mathbf{x}\in\mathcal{R}_j$ is assigned to $C_j$. If the true class is $C_k$, the probability density associated with this outcome is $p(\mathbf{x},C_k)$. Therefore, the expected loss contributed by assigning inputs in $\mathcal{R}_j$ to class $C_j$ when their true class is $C_k$ is
+
+\begin{equation}
+    \int_{\mathcal{R}_j}L_{kj}p(\mathbf{x},C_k)\,d\mathbf{x}.
+\end{equation}
+
+Summing over all true classes and all decision regions gives the total expected loss,
+
+\begin{equation}
+    \mathbb{E}[L] = \sum_{j}\sum_{k}\int_{\mathcal{R}_j}L_{kj}p(\mathbf{x},C_k)\,d\mathbf{x} = \sum_{j}\int_{\mathcal{R}_j}\sum_{k}L_{kj}p(\mathbf{x},C_k)\,d\mathbf{x} .
+\end{equation}
+
+As before, if no restrictions are placed on the form of the decision rule, the class assigned at one value of $\mathbf{x}$ can be chosen independently of the class assigned at another value. Therefore, minimizing the total expected loss can be done separately for each $\mathbf{x}$. If $\mathbf{x}$ is assigned to class $C_j$, its local contribution to the expected loss is
+
+\begin{equation}
+    \sum_{k}L_{kj}p(\mathbf{x},C_k) = p(\mathbf{x})\sum_{k}L_{kj}p(C_k\mid\mathbf{x}).
+\end{equation}
+
+Because $p(\mathbf{x})$ is independent of the chosen class $C_j$, it does not affect which decision minimizes the loss. We therefore define the conditional expected loss associated with assigning $\mathbf{x}$ to class $C_j$ as
+
+\begin{equation}
+    R(C_j\mid\mathbf{x}) = \sum_{k}L_{kj}p(C_k\mid\mathbf{x}),
+\end{equation}
+
+where $R(C_j\mid\mathbf{x})$ is also commonly called the \textit{conditional risk}. The optimal decision rule assigns $\mathbf{x}$ to the class whose conditional expected loss is smallest,
+
+\begin{equation}
+    \hat{C}(\mathbf{x}) = \arg\min_{C_j}\sum_{k}L_{kj}p(C_k\mid\mathbf{x}).
+\label{eq:c1_minimum_expected_loss_classification_rule}
+\end{equation}
+
+Thus, the posterior probabilities describe the uncertainty about the true class, and the loss matrix describes the consequences of the possible decisions. The optimal classifier combines both quantities and chooses the decision with the minimum expected loss.
+
+We now show that the maximum-posterior classification rule in Eq.~\ref{eq:c1_maximum_posterior_classification_rule} is a special case of the more general minimum-expected-loss rule in Eq.~\ref{eq:c1_minimum_expected_loss_classification_rule} when all misclassification errors have the same loss. Let
+
+\begin{equation}
+    L_{kj} =
+    \begin{cases}
+        0, & k=j,\\
+        L, & k\neq j,
+    \end{cases}
+\end{equation}
+
+where $L>0$ is the common loss assigned to any incorrect classification. If $\mathbf{x}$ is assigned to class $C_j$, the corresponding conditional expected loss is
+
+\begin{equation}
+    \sum_k L_{kj}p(C_k|\mathbf{x}) = L\sum_{k\neq j}p(C_k|\mathbf{x}) = L\left[1-p(C_j|\mathbf{x})\right],
+\end{equation}
+
+Since $L$ is a positive constant and is the same for every candidate class, minimizing the conditional expected loss is equivalent to maximizing $p(C_j|\mathbf{x})$. Therefore, under equal misclassification losses, the decision rule in Eq.~\ref{eq:c1_minimum_expected_loss_classification_rule} reduces to Eq.~\ref{eq:c1_maximum_posterior_classification_rule}.
 
 \end{document}
