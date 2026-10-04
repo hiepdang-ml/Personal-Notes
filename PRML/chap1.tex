@@ -1783,5 +1783,628 @@ Substituting these expressions into the joint posterior gives
 
 Thus, if separate probabilistic models provide posterior probabilities from conditionally independent data sources, their outputs can be combined into a joint posterior that incorporates all available sources. This illustrates an important advantage of retaining posterior probabilities rather than learning only a direct input-to-class mapping.
 
+\subsection{Loss Functions for Regression}
+
+Decision theory also applies to regression, where the target $t$ is continuous and the decision is a prediction $y(\mathbf{x})$ for each input $\mathbf{x}$. If predicting $y(\mathbf{x})$ when the true target is $t$ incurs a loss $L(t,y(\mathbf{x}))$, then the expected loss over the joint distribution $p(\mathbf{x},t)$ is
+
+\begin{equation}
+    \mathbb{E}[L] = \iint L(t,y(\mathbf{x}))p(\mathbf{x},t)\,d\mathbf{x}\,dt.
+\end{equation}
+
+The goal is to choose the regression function $y(\mathbf{x})$ that minimizes this expected loss. A common choice for $L(t, y(\mathbf{x}))$ is the squared loss,
+
+\begin{equation}
+    L(t,y(\mathbf{x})) = \left(y(\mathbf{x})-t\right)^2,
+\end{equation}
+
+for which
+
+\begin{equation}
+    \mathbb{E}[L] = \iint \left(y(\mathbf{x})-t\right)^2 p(\mathbf{x},t)\,d\mathbf{x}\,dt.
+\end{equation}
+
+If no restrictions are placed on the form of $y(\mathbf{x})$, its value can be chosen independently for each $\mathbf{x}$. Minimizing the total expected loss reduces to minimizing its contribution separately for each fixed $\mathbf{x}$. For a given $\mathbf{x}$, this contribution is
+
+\begin{equation}
+    F(y(\mathbf{x})) = \int\left(y(\mathbf{x})-t\right)^2 p(\mathbf{x},t)\,dt.
+\end{equation}
+
+Because $p(\mathbf{x},t)$ does not depend on $y(\mathbf{x})$, differentiating $F(y(\mathbf{x}))$ with respect to $y(\mathbf{x})$ gives
+
+\begin{equation}
+\begin{aligned}
+    \frac{\partial F(y(\mathbf{x}))}{\partial y(\mathbf{x})}
+    &= \int \frac{\partial}{\partial y(\mathbf{x})}\left[\left(y(\mathbf{x})-t\right)^2 p(\mathbf{x},t)\right]\,dt \\
+    &= \int p(\mathbf{x},t)\frac{\partial}{\partial y(\mathbf{x})}\left(y(\mathbf{x})-t\right)^2\,dt \\
+    &= 2\int \left(y(\mathbf{x})-t\right)p(\mathbf{x},t)\,dt.
+\end{aligned}
+\end{equation}
+
+At the minimum, this derivative is zero. Solving for $y(\mathbf{x})$, and using the sum and product rules of probability, we obtain
+
+\begin{equation}
+    y(\mathbf{x}) = \int t\,\frac{p(\mathbf{x},t)}{p(\mathbf{x})}\,dt = \int t\,p(t\mid\mathbf{x})\,dt = \mathbb{E}[t\mid\mathbf{x}].
+\label{eq:c1_regression_function}
+\end{equation}
+
+Thus, under squared loss, the optimal regression function is the conditional mean of the target given the input.
+
+We can also derive this result in a slightly different way, which will also shed light on the nature of the regression problem. The expectation over $t$ with respect to the conditional distribution $p(t\mid\mathbf{x})$ is
+
+\begin{equation}
+\begin{aligned}
+    &\mathbb{E}_{t|\mathbf{x}}\left[\left(y(\mathbf{x})-t\right)^2\right] = \int \left(y(\mathbf{x})-t\right)^2 p(t\mid\mathbf{x})\,dt \\
+    &\hspace{-0.3em}= \int \left[(y(\mathbf{x}) - \mathbb{E}[t|\mathbf{x}])^2 + (\mathbb{E}[t|\mathbf{x}]-t)^2 + 2(y(\mathbf{x})-\mathbb{E}[t|\mathbf{x}])(\mathbb{E}[t|\mathbf{x}]-t)\right]p(t|\mathbf{x})dt.
+\end{aligned}
+\end{equation}
+
+For a fixed $\mathbf{x}$, both $y(\mathbf{x})$ and $\mathbb{E}[t|\mathbf{x}]$ are constants, and also note that $\int p(t\mid\mathbf{x})\,dt = 1$. Therefore,
+
+\begin{equation}
+\begin{aligned}
+    \mathbb{E}_{t\mid\mathbf{x}}\left[\left(y(\mathbf{x})-t\right)^2\right]
+    &= \left(y(\mathbf{x}) - \mathbb{E}[t\mid\mathbf{x}]\right)^2 + \int\left(\mathbb{E}[t\mid\mathbf{x}] - t\right)^2p(t\mid\mathbf{x})\,dt \\
+    &+ 2\left(y(\mathbf{x}) - \mathbb{E}[t\mid\mathbf{x}]\right)\int\left(\mathbb{E}[t\mid\mathbf{x}] - t\right)p(t\mid\mathbf{x})\,dt
+\end{aligned}
+\end{equation}
+
+The cross-term vanishes because
+
+\begin{equation}
+\begin{aligned}
+    \int \left(\mathbb{E}[t\mid\mathbf{x}] - t\right)p(t\mid\mathbf{x})\,dt
+    &= \mathbb{E}[t\mid\mathbf{x}]\int p(t\mid\mathbf{x})\,dt - \int t\,p(t\mid\mathbf{x})\,dt \\
+    &= \mathbb{E}[t\mid\mathbf{x}] - \mathbb{E}[t\mid\mathbf{x}] = 0.
+\end{aligned}
+\end{equation}
+
+The second term is just the conditional variance, i.e., $\operatorname{var}[t\mid\mathbf{x}]$. Hence, for each fixed $\mathbf{x}$,
+
+\begin{equation}
+    \mathbb{E}_{t\mid\mathbf{x}}\left[\left(y(\mathbf{x})-t\right)^2\right] =\left(y(\mathbf{x}) - \mathbb{E}[t\mid\mathbf{x}]\right)^2 + \operatorname{var}[t\mid\mathbf{x}].
+\end{equation}
+
+Averaging this conditional expected loss over $p(\mathbf{x})$ gives
+
+\begin{equation}
+    \mathbb{E}[L] = \int\left(y(\mathbf{x}) - \mathbb{E}[t\mid\mathbf{x}]\right)^2 p(\mathbf{x})\,d\mathbf{x} + \int\operatorname{var}[t\mid\mathbf{x}]p(\mathbf{x})\,d\mathbf{x}.
+\end{equation}
+
+The second integral does not depend on the regression function. It is the conditional variance of $t$ averaged over $\mathbf{x}$ and represents the irreducible uncertainty in the target that can be regarded as noise. Minimizing the expected squared loss reduces to minimizing the first term. Because its integrand is nonnegative for every $\mathbf{x}$, the smallest possible value of the first integral is zero, which is achieved only when $y(\mathbf{x}) = \mathbb{E}[t\mid\mathbf{x}]$ for every $\mathbf{x}$. Hence, we obtain the same optimal regression function as in Eq.~\ref{eq:c1_regression_function}.
+
+As with the classiﬁcation problem, we can either determine the appropriate probabilities and then use these to make optimal decisions, or we can build models that make decisions directly. Indeed, we can identify three distinct approaches to solving regression problems given, in order of decreasing complexity, by:
+
+\begin{enumerate}
+
+\item The first approach is to model the joint density $p(\mathbf{x},t)$. The conditional density of the target is then obtained by normalization,
+
+\begin{equation}
+    p(t\mid\mathbf{x}) = \frac{p(\mathbf{x},t)}{\int p(\mathbf{x},t)\,dt}.
+\end{equation}
+
+Once $p(t\mid\mathbf{x})$ is available, decision theory is used to determine the regression prediction according to the chosen loss function. For example, under squared loss, the optimal prediction is the conditional mean,
+
+\begin{equation}
+    y(\mathbf{x}) = \mathbb{E}[t\mid\mathbf{x}] = \int t\,p(t\mid\mathbf{x})\,dt.
+\end{equation}
+
+As in the classification setting discussed earlier, approaches that explicitly model the joint distribution of the inputs and targets are called generative models. Examples include joint Gaussian models, Gaussian mixture models defined over $(\mathbf{x},t)$, and joint kernel density estimators.
+
+\item The second approach is to model the conditional density $p(t\mid\mathbf{x})$ directly without modeling the marginal input distribution $p(\mathbf{x})$. Examples of this approach include probabilistic linear regression, heteroscedastic regression models, and mixture density networks, all of which model the distribution of the target conditioned on the input.
+
+\item The third approach removes the probabilistic inference stage altogether. Instead, we learn a regression function $y(\mathbf{x})$ that maps the input directly to a target prediction without explicitly estimating $p(t\mid\mathbf{x})$. Examples include ordinary least-squares regression, neural networks trained with mean squared error, regression trees, and support vector regression.
+
+\end{enumerate}
+
+For the first two approaches, squared loss is not the only possible loss function. A broader family is
+
+\begin{equation}
+    \mathbb{E}[L_q] = \iint\left|y(\mathbf{x})-t\right|^q p(\mathbf{x},t)\,d\mathbf{x}\,dt.
+\end{equation}
+
+For $q=2$, this reduces to squared loss and the optimal prediction is the conditional mean, i.e., $y(\mathbf{x}) = \mathbb{E}(t\mid\mathbf{x})$ as shown above. For $q=1$, the optimal prediction is the conditional median. When $q\rightarrow 0$, the optimum approaches the conditional mode. Thus, the optimal regression estimate depends directly on the choice of loss function.
+
+\section{Information Theory}
+
+Information theory provides a quantitative framework for measuring the information obtained from observing random variables. Consider a discrete random variable $x$ with probability mass function $p(x)$. The information associated with observing a particular value of $x$ can be interpreted as its `degree of surprise'. An unlikely event should provide more information than a likely event; an event that is certain to occur should provide no information.
+
+Let $h(x)$ denote the information associated with observing $x$. We require $h(x)$ to decrease monotonically as $p(x)$ increases. We also require information to be additive for independent events. If $x$ and $y$ are independent, then $p(x,y) = p(x)p(y)$, while the information obtained by observing both should satisfy $h(x,y) = h(x) + h(y)$. Because the logarithm converts products of probabilities into sums, these requirements lead to the definition of \textit{self-information}
+
+\begin{equation}
+    h(x) = -\log p(x).
+\end{equation}
+
+The negative sign ensures that $h(x)\geq 0$. An event with $p(x)=1$ has $h(x)=0$.
+
+The average information obtained by observing the random variable $x$ is the expectation of $h(x)$ with respect to $p(x)$. This quantity is called the \textit{entropy},
+
+\begin{equation}
+    \mathrm{H}[x] = \mathbb{E}[h(x)] = -\sum_x p(x)\log p(x).
+\end{equation}
+
+For outcomes with $p(x)=0$, we define their contribution to the entropy to be zero because
+
+\begin{equation}
+    \lim_{p\rightarrow 0} p\log p = 0.
+\end{equation}
+
+Entropy can therefore be interpreted as the average amount of information required to specify the outcome of a random variable.
+
+When using logarithms to base $2$, the information is measured in \textit{bits}. To understand the motivation of chossing base $2$ in information theory by default, consider an example in which $x$ has eight equally likely states. Then $p(x)=1/8$ for every state, and
+
+\begin{equation}
+    \mathrm{H}[x] = -8\left(\frac{1}{8}\right)\log_2\left(\frac{1}{8}\right) = 3 \text{ bits}.
+\end{equation}
+
+This agrees with the fact that eight possible states can be represented exactly using binary strings of length three.
+
+Now consider eight states $\{a,b,c,d,e,f,g,h\}$ with probabilities
+
+\begin{equation}
+    \left(
+    \frac{1}{2},
+    \frac{1}{4},
+    \frac{1}{8},
+    \frac{1}{16},
+    \frac{1}{64},
+    \frac{1}{64},
+    \frac{1}{64},
+    \frac{1}{64}
+    \right).
+\end{equation}
+
+The entropy is
+
+\begin{equation}
+\begin{aligned}
+    \mathrm{H}[x]
+    &= -\frac{1}{2}\log_2\frac{1}{2}-\frac{1}{4}\log_2\frac{1}{4}-\frac{1}{8}\log_2\frac{1}{8} \\
+    &\quad -\frac{1}{16}\log_2\frac{1}{16}-4\left(\frac{1}{64}\log_2\frac{1}{64}\right) \\
+    &= 2 \text{ bits}.
+\end{aligned}
+\end{equation}
+
+Although there are still eight possible states, the entropy is smaller because the distribution is highly nonuniform. Most of the probability mass is concentrated on a few states, making the outcome more predictable on average. Hence, shorter codewords can be assigned to more probable states and longer codewords to less probable states. The codewords must nevertheless be chosen so that concatenated messages can be decoded unambiguously. For example, the states above may be represented by the codewords
+
+\begin{equation}
+    0,\;10,\;110,\;1110,\;111100,\;111101,\;111110,\;111111.
+\end{equation}
+
+The expected code length is then
+
+\begin{equation}
+    \mathbb{E}[\ell] = \frac{1}{2}(1) + \frac{1}{4}(2) + \frac{1}{8}(3) + \frac{1}{16}(4) + 4\left(\frac{1}{64}(6)\right) = 2 \text{ bits}.
+\end{equation}
+
+The relationship between entropy and coding length is formalized by the \textit{noiseless coding theorem}, which states that entropy provides a lower bound on the average number of bits required to encode the outcomes of a random variable using an efficient lossless coding scheme. Hence, entropy is not only a measure of uncertainty, but also a fundamental measure of the amount of information required to represent data.
+
+In machine learning theory, it is often more convenient to use natural logarithms rather than logarithms to base $2$. The entropy is then measured in \textit{nats} rather than bits. The two units differ only by the constant conversion factor $\ln 2$.
+
+Using natural logarithms, we can now formalize the pattern observed in the previous two examples: entropy is largest when the probability mass is distributed uniformly across the available states. For a discrete random variable with $M$ possible states,
+
+\begin{equation}
+    \mathrm{H}[p] = -\sum_{i=1}^{M}p_i\ln p_i,
+\end{equation}
+
+subject to the normalization constraint
+
+\begin{equation}
+    \sum_{i=1}^{M} p_i = 1.
+\end{equation}
+
+To find the distribution that maximizes the entropy, we solve a constrained optimization problem with $\mathrm{H}[p]$ as the objective function and the normalization condition on the probabilities as the constraint. Introducing a Lagrange multiplier $\lambda$, we maximize
+
+\begin{equation}
+    \widetilde{\mathrm{H}} = -\sum_{i=1}^{M}p_i\ln p_i + \lambda \left(\sum_{i=1}^{M}p_i-1\right).
+\end{equation}
+
+Differentiating with respect to the probability vector $\mathbf{p} = (p_1,\ldots,p_M)^T$ gives a gradient vector in $\mathbb{R}^M$, with the $i$th component given by
+
+\begin{equation}
+    \frac{\partial \widetilde{\mathrm{H}}}{\partial p_i} = -\ln p_i - 1 + \lambda.
+\end{equation}
+
+At a stationary point, the gradient vector must be $\mathbf{0}$, which implies that all probabilities are equal to the same constant $e^{\lambda-1}$. Applying the normalization constraint gives
+
+\begin{equation}
+    p_i = \frac{1}{M}, \qquad i=1,\ldots,M.
+\end{equation}
+
+The corresponding maximum entropy is therefore
+
+\begin{equation}
+    \mathrm{H}_{\max} = -\sum_{i=1}^{M}\frac{1}{M}\ln\frac{1}{M} = \ln M.
+\end{equation}
+
+To verify that this stationary point is indeed a maximum, we examine the Hessian of the Lagrangian with respect to the probability vector $\mathbf{p}$. The Hessian is diagonal, with entries
+
+\begin{equation}
+    \frac{\partial^2\widetilde{\mathrm{H}}}{\partial p_i\partial p_j} =
+    \begin{cases}
+        -\dfrac{1}{p_i}, & i=j,\\
+        0, & i\neq j.
+    \end{cases}
+\end{equation}
+
+Because $p_i>0$ for all $i$, the Hessian is negative definite. The stationary point is a strict maximum.
+
+We now extend entropy to continuous random variables. Let $x$ be a continuous variable with density $p(x)$. Divide the domain of $x$ into bins of width $\Delta$. If $p(x)$ is continuous, then by the mean value theorem there exists a point $x_i$ in the $i$th bin such that
+
+\begin{equation}
+    \int_{i\Delta}^{(i+1)\Delta} p(x)\,dx = p(x_i)\Delta.
+\end{equation}
+
+The probability associated with the $i$th bin is therefore $p(x_i)\Delta$. Treating the bins as the states of a discrete random variable gives
+
+\begin{equation}
+\begin{aligned}
+    \mathrm{H}_{\Delta}
+    &= -\sum_i p(x_i)\Delta \ln\left[p(x_i)\Delta\right] \\
+    &= -\sum_i p(x_i)\Delta\ln p(x_i) - \ln\Delta,
+\end{aligned}
+\end{equation}
+
+where we have used $\sum_i p(x_i)\Delta=1$.
+
+As $\Delta\to 0$, the first term approaches a Riemann integral,
+
+\begin{equation}
+    -\sum_i p(x_i)\Delta\ln p(x_i)\longrightarrow -\int p(x)\ln p(x)\,dx.
+\end{equation}
+
+This motivates the definition of the \textit{differential entropy},
+
+\begin{equation}
+    \mathrm{H}(x) = -\int p(x)\ln p(x)\,dx.
+\label{eq:c1_entropy_continuous_distribution}
+\end{equation}
+
+The discrete entropy $\mathrm{H}_{\Delta}$ differs from the differential entropy by the term $-\ln\Delta$, which diverges as $\Delta\to 0$. Therefore, differential entropy is not the direct limiting value of discrete entropy and, unlike discrete entropy, it can be negative. For a multivariate continuous variable $\mathbf{x}$, the corresponding definition is
+
+\begin{equation}
+    \mathrm{H}(\mathbf{x}) = -\int p(\mathbf{x})\ln p(\mathbf{x})\,d\mathbf{x}.
+\end{equation}
+
+As in the discrete case, we can ask which continuous distribution has the maximum entropy. Suppose the density is constrained to have mean $\mu$ and variance $\sigma^2$, the resulting set of three constraints are
+
+\begin{equation}
+    \int_{-\infty}^{\infty} p(x)\,dx = 1,
+\end{equation}
+
+\begin{equation}
+    \int_{-\infty}^{\infty} x p(x)\,dx = \mu,
+\end{equation}
+
+and
+
+\begin{equation}
+    \int_{-\infty}^{\infty} (x-\mu)^2 p(x)\,dx = \sigma^2.
+\end{equation}
+
+We maximize the differential entropy subject to these constraints by introducing three Lagrange multipliers $\{\lambda\}^3_{i=1}$. Because the quantity being optimized depends on the entire density function $p(x)$, the resulting objective is a \textit{functional}, written as
+
+\begin{equation}
+\begin{aligned}
+    \widetilde{\mathrm{H}}[p]
+    &=-\int_{-\infty}^{\infty} p(x)\ln p(x)\,dx + \lambda_1\left[\int_{-\infty}^{\infty}p(x)\,dx-1\right] \\
+    &\quad
+    + \lambda_2\left[\int_{-\infty}^{\infty}xp(x)\,dx-\mu\right]
+    + \lambda_3\left[\int_{-\infty}^{\infty}(x-\mu)^2p(x)\,dx-\sigma^2\right].
+\end{aligned}
+\end{equation}
+
+Collecting all terms that depend on $p(x)$ inside a single integral gives
+
+\begin{equation}
+\begin{aligned}
+    \widetilde{\mathrm{H}}[p]
+    &= \int_{-\infty}^{\infty}\Big[-p(x)\ln p(x) + \lambda_1p(x) + \lambda_2xp(x) \\
+    &\qquad\qquad + \lambda_3(x-\mu)^2p(x)\Big]\,dx -\lambda_1-\lambda_2\mu-\lambda_3\sigma^2.
+\end{aligned}
+\end{equation}
+
+The last three terms do not depend on $p(x)$, so their functional derivatives are zero. Moreover, the integrand depends on $p(x)$ but not on the derivative of $p(x)$. Therefore, the \textit{functional derivative} is obtained by differentiating the integrand directly with respect to $p(x)$ (see Appendix "Calculus of Variations"),
+
+\begin{equation}
+\begin{aligned}
+    \frac{\delta\widetilde{\mathrm{H}}}{\delta p(x)}
+    &=
+    -\frac{\partial}{\partial p(x)}\left[p(x)\ln p(x)\right]
+    +\frac{\partial}{\partial p(x)}\left[\lambda_1p(x)\right] \\
+    &\quad
+    +\frac{\partial}{\partial p(x)}\left[\lambda_2xp(x)\right]
+    +\frac{\partial}{\partial p(x)}\left[\lambda_3(x-\mu)^2p(x)\right] \\
+    &=
+    -\ln p(x)-1+\lambda_1+\lambda_2x+\lambda_3(x-\mu)^2.
+\end{aligned}
+\end{equation}
+
+The functional must be stationary at the optimial distribution, meaning that its functional derivative is 0 for every $x$, so
+
+\begin{equation}
+    p(x) = \exp\left[-1+\lambda_1+\lambda_2x+\lambda_3(x-\mu)^2\right].
+\end{equation}
+
+Substituting this form back into the three constraints determines the Lagrange multipliers
+
+\begin{equation}
+    \lambda_1 = 1-\frac{1}{2}\ln(2\pi\sigma^2),
+    \qquad
+    \lambda_2=0,
+    \qquad
+    \lambda_3=-\frac{1}{2\sigma^2}.
+\end{equation}
+
+The density now has the closed-form
+
+\begin{equation}
+    p(x) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp\left[-\frac{(x-\mu)^2}{2\sigma^2}\right] = \mathcal{N}(x;\mu,\sigma^2).
+\end{equation}
+
+Thus, among all continuous distributions with a fixed mean and variance, the Gaussian distribution has the maximum differential entropy. Substituting $p(x)$ into Eq.~\ref{eq:c1_entropy_continuous_distribution}, its entropy is
+
+\begin{equation}
+    \mathrm{H}[x] = \frac{1}{2}\left[1+\ln(2\pi\sigma^2)\right] = \frac{1}{2}\ln(2\pi e\sigma^2).
+\end{equation}
+
+The entropy therefore increases with $\sigma^2$, implying that greater uncertainty associated with a broader distribution. This expression also shows that differential entropy can be negative when the variance is sufficiently small,
+
+\begin{equation}
+    \mathrm{H}[x] < 0 \iff \sigma^2 < \frac{1}{2\pi e}.
+\end{equation}
+
+We can also define entropy when part of the information is already known. Suppose $\mathbf{x}$ and $\mathbf{y}$ have a joint distribution $p(\mathbf{x},\mathbf{y})$. Before observing $\mathbf{x}$, the uncertainty in $\mathbf{y}$ is described by its marginal density $p(\mathbf{y})$. Once a particular value of $\mathbf{x}$ is known, however, our uncertainty about $\mathbf{y}$ is described instead by the conditional density $p(\mathbf{y}\mid\mathbf{x})$.
+
+For a fixed value of $\mathbf{x}$, the entropy of this conditional distribution is
+
+\begin{equation}
+    \mathrm{H}[\mathbf{y}\mid\mathbf{x}=\mathbf{x}_0] = -\int p(\mathbf{y}\mid\mathbf{x}_0) \ln p(\mathbf{y}\mid\mathbf{x}_0)\,d\mathbf{y}.
+\end{equation}
+
+Different values of $\mathbf{x}$ generally produce different conditional distributions and therefore different amounts of uncertainty in $\mathbf{y}$. To obtain a single measure of the remaining uncertainty in $\mathbf{y}$ after $\mathbf{x}$ is observed, we average these conditional entropies over all possible values of $\mathbf{x}$ according to $p(\mathbf{x})$,
+
+\begin{equation}
+\begin{aligned}
+    \mathrm{H}[\mathbf{y}\mid\mathbf{x}]
+    &= -\int p(\mathbf{x})\left[\int p(\mathbf{y}\mid\mathbf{x})\ln p(\mathbf{y}\mid\mathbf{x})\,d\mathbf{y}\right]d\mathbf{x} \\
+    &= -\iint p(\mathbf{x},\mathbf{y})\ln p(\mathbf{y}\mid\mathbf{x})\,d\mathbf{x}\,d\mathbf{y}.
+\end{aligned}
+\end{equation}
+
+The conditional entropy $\mathrm{H}[\mathbf{y}\mid\mathbf{x}]$ is the average uncertainty remaining in $\mathbf{y}$ after the value of $\mathbf{x}$ is known.
+
+The joint entropy is
+
+\begin{equation}
+\begin{aligned}
+    \mathrm{H}[\mathbf{x},\mathbf{y}] &= -\iint p(\mathbf{x},\mathbf{y})\ln p(\mathbf{x},\mathbf{y})\,d\mathbf{x}\,d\mathbf{y} \\
+    &= -\iint p(\mathbf{x},\mathbf{y})\ln p(\mathbf{y}\mid\mathbf{x})\,d\mathbf{x}\,d\mathbf{y} - \iint p(\mathbf{x},\mathbf{y}) \ln p(\mathbf{x})\,d\mathbf{x}\,d\mathbf{y}
+\end{aligned}
+\end{equation}
+
+The first term is exactly $\mathrm{H}[\mathbf{y}\mid\mathbf{x}]$. For the second term, $\ln p(\mathbf{x})$ does not depend on $\mathbf{y}$, so
+
+\begin{equation}
+\begin{aligned}
+    -\iint p(\mathbf{x},\mathbf{y})\ln p(\mathbf{x})\,d\mathbf{x}\,d\mathbf{y}
+    &=-\int \ln p(\mathbf{x})\left[\int p(\mathbf{x},\mathbf{y})\,d\mathbf{y}\right]d\mathbf{x} \\
+    &=-\int p(\mathbf{x})\ln p(\mathbf{x})\,d\mathbf{x} \\
+    &=\mathrm{H}[\mathbf{x}].
+\end{aligned}
+\end{equation}
+
+We therefore obtain the entropy chain rule,
+
+\begin{equation}
+    \mathrm{H}[\mathbf{x},\mathbf{y}] = \mathrm{H}[\mathbf{x}] + \mathrm{H}[\mathbf{y}\mid\mathbf{x}].
+\label{eq:c1_entropy_chain_rule}
+\end{equation}
+
+Thus, the total uncertainty in the pair $(\mathbf{x},\mathbf{y})$ can be viewed as the uncertainty in $\mathbf{x}$ together with the uncertainty that remains in $\mathbf{y}$ after $\mathbf{x}$ has been observed.
+
+
+\subsection{Relative Entropy and Mutual Information}
+
+Suppose the true distribution of a random variable $\mathbf{x}$ is $p(\mathbf{x})$, but we use another distribution $q(\mathbf{x})$ to represent it. Under an ideal coding scheme based on $p(\mathbf{x})$, an outcome $\mathbf{x}$ is assigned a code length proportional to $-\ln p(\mathbf{x})$. If the code is instead designed using $q(\mathbf{x})$, the same outcome is assigned a code length proportional to $-\ln q(\mathbf{x})$. The difference in code length for that outcome is therefore
+
+\begin{equation}
+    -\ln q(\mathbf{x})+\ln p(\mathbf{x}) = \ln\frac{p(\mathbf{x})}{q(\mathbf{x})}.
+\end{equation}
+
+Because samples are actually generated according to $p(\mathbf{x})$, the average excess code length is obtained by taking the expectation with respect to $p(\mathbf{x})$,
+
+\begin{equation}
+    \mathrm{KL}(p\|q) = \int p(\mathbf{x})\ln\frac{p(\mathbf{x})}{q(\mathbf{x})}\,d\mathbf{x}.
+\end{equation}
+
+This quantity is called the \textit{Kullback--Leibler divergence}, or \textit{relative entropy}. It measures the average penalty incurred when $q(\mathbf{x})$ is used in place of the true distribution $p(\mathbf{x})$.
+
+Kullback--Leibler divergence can also be written as
+
+\begin{equation}
+    \operatorname{KL}(p\|q) = \left[-\int p(\mathbf{x})\ln q(\mathbf{x})\,d\mathbf{x}\right]- \left[-\int p(\mathbf{x})\ln p(\mathbf{x})\,d\mathbf{x}\right].
+\end{equation}
+
+The first term is the \textit{cross-entropy} between $p(\mathbf{x})$ and $q(\mathbf{x})$, representing the average code length when samples generated from $p(\mathbf{x})$ are encoded using $q(\mathbf{x})$. The second term is the entropy of the true distribution $p(\mathbf{x})$.
+
+The Kullback--Leibler divergence is also asymmetric,
+
+\begin{equation}
+    \operatorname{KL}(p\|q) \neq \operatorname{KL}(q\|p),
+\end{equation}
+
+so it is not a distance metric.
+
+Another important property of the Kullback--Leibler divergence is its nonnegativity. To establish this result, consider a convex function $f(x)$. For any $a$ and $b$ and any $0\leq\lambda\leq 1$, convexity requires
+
+\begin{equation}
+    f\left(\lambda a+(1-\lambda)b\right)\leq\lambda f(a)+(1-\lambda)f(b).
+\end{equation}
+
+More generally, for nonnegative weights $\lambda_i$ satisfying $\sum_i\lambda_i=1$,
+
+\begin{equation}
+    f\left(\sum_i\lambda_i x_i\right)\leq\sum_i\lambda_i f(x_i).
+\end{equation}
+
+Interpreting the weights as probabilities leads directly to \textit{Jensen's inequality},
+
+\begin{equation}
+    f\left(\mathbb{E}[x]\right)
+    \leq
+    \mathbb{E}[f(x)].
+\end{equation}
+
+For a continuous random variable, this becomes
+
+\begin{equation}
+    f\left(\int x p(x)\,dx\right)\leq\int f(x)p(x)\,dx.
+\end{equation}
+
+We now apply Jensen's inequality using the strictly convex function $f(x)=-\ln x$. Rewriting the KL divergence as
+
+\begin{equation}
+    \operatorname{KL}(p\|q) = \int p(\mathbf{x})\left[-\ln\frac{q(\mathbf{x})}{p(\mathbf{x})}\right]\,d\mathbf{x},
+\end{equation}
+
+Jensen's inequality gives
+
+\begin{equation}
+    \operatorname{KL}(p\|q) \geq -\ln\left[\int p(\mathbf{x})\frac{q(\mathbf{x})}{p(\mathbf{x})}\,d\mathbf{x}\right] = -\ln 1.
+\end{equation}
+
+Therefore,
+
+\begin{equation}
+    \operatorname{KL}(p\|q)\geq 0.
+\end{equation}
+
+Equality holds if and only if
+
+\begin{equation}
+    p(\mathbf{x})=q(\mathbf{x})
+\end{equation}
+
+almost everywhere. The KL divergence can therefore be used as a measure of discrepancy between two probability distributions, although its asymmetry prevents it from being a distance.
+
+Kullback--Leibler divergence also provides a direct connection between density estimation and maximum likelihood. Suppose data are generated from an unknown distribution $p(\mathbf{x})$, and we approximate this distribution using a parametric model $q(\mathbf{x}\mid\boldsymbol{\theta})$. We seek parameters that minimize
+
+\begin{equation}
+    \operatorname{KL}\left(p(\mathbf{x})\,\|\,q(\mathbf{x}\mid\boldsymbol{\theta})\right).
+\end{equation}
+
+Expanding the divergence gives
+
+\begin{equation}
+\begin{aligned}
+    \operatorname{KL}(p\|q)
+    &=-\int p(\mathbf{x})\ln q(\mathbf{x}\mid\boldsymbol{\theta})\,d\mathbf{x} + \int p(\mathbf{x})\ln p(\mathbf{x})\,d\mathbf{x}.
+\end{aligned}
+\end{equation}
+
+Suppose we observe $N$ independent samples $\{\mathbf{x}_1,\ldots,\mathbf{x}_N\}$ drawn from the true distribution $p(\mathbf{x})$. The Kullback--Leibler divergence can be rewritten as an expectation with respect to $p(\mathbf{x})$,
+
+\begin{equation}
+\begin{aligned}
+    \operatorname{KL}(p\|q)
+    &=\int p(\mathbf{x})\ln\frac{p(\mathbf{x})}{q(\mathbf{x}\mid\boldsymbol{\theta})}\,d\mathbf{x} \\
+    &=\mathbb{E}_{p(\mathbf{x})}\left[\ln p(\mathbf{x}) - \ln q(\mathbf{x}\mid\boldsymbol{\theta})\right].
+\end{aligned}
+\end{equation}
+
+Because the samples $\mathbf{x}_1,\ldots,\mathbf{x}_N$ are drawn independently from $p(\mathbf{x})$, an expectation under $p(\mathbf{x})$ can be approximated by the corresponding empirical average over the observed samples,
+
+\begin{equation}
+    \operatorname{KL}(p\|q) \simeq \frac{1}{N}\sum_{n=1}^{N}\left[-\ln q(\mathbf{x}_n\mid\boldsymbol{\theta}) + \ln p(\mathbf{x}_n)\right].
+\end{equation}
+
+Because the term $\ln p(\mathbf{x}_n)$ does not depend on $\boldsymbol{\theta}$. The optimization reduces to
+
+\begin{equation}
+    \boldsymbol{\theta}^{*} = \arg\min_{\boldsymbol{\theta}}\left[-\frac{1}{N}\sum_{n=1}^{N}\ln q(\mathbf{x}_n\mid\boldsymbol{\theta})\right].
+\end{equation}
+
+Equivalently,
+
+\begin{equation}
+    \boldsymbol{\theta}^{*} = \arg\max_{\boldsymbol{\theta}}\sum_{n=1}^{N}\ln q(\mathbf{x}_n\mid\boldsymbol{\theta}) = \arg\max_{\boldsymbol{\theta}}\prod_{n=1}^{N}q(\mathbf{x}_n\mid\boldsymbol{\theta}).
+\end{equation}
+
+Thus, choosing the model distribution $q(\mathbf{x}\mid\boldsymbol{\theta})$ that minimizes the KL divergence from the unknown data-generating distribution $p(\mathbf{x})$ can be interpreted as maximum likelihood estimation.
+
+KL divergence can also be used to quantify statistical dependence between two random variables $\mathbf{x}$ and $\mathbf{y}$. If they are independent, their joint distribution factorizes as
+
+\begin{equation}
+    p(\mathbf{x},\mathbf{y}) = p(\mathbf{x})p(\mathbf{y}).
+\end{equation}
+
+This motivates defining the \textit{mutual information} as the KL divergence between the joint distribution and the product of the marginals,
+
+\begin{equation}
+\begin{aligned}
+    \mathrm{I}[\mathbf{x},\mathbf{y}]
+    &=\operatorname{KL}\left(p(\mathbf{x},\mathbf{y})\,\|\,p(\mathbf{x})p(\mathbf{y})\right) \\
+    &=\iint p(\mathbf{x},\mathbf{y})\ln\frac{p(\mathbf{x},\mathbf{y})}{p(\mathbf{x})p(\mathbf{y})}\,d\mathbf{x}\,d\mathbf{y}.
+\end{aligned}
+\end{equation}
+
+We can also write
+
+\begin{equation}
+    \mathrm{I}[\mathbf{x},\mathbf{y}] = \iint p(\mathbf{x},\mathbf{y}) \left[\ln p(\mathbf{x},\mathbf{y}) - \ln p(\mathbf{x}) - \ln p(\mathbf{y})\right]\,d\mathbf{x}\,d\mathbf{y}.
+\label{eq:c1_mutual_information}
+\end{equation}
+
+Since Kullback--Leibler divergence is nonnegative,
+
+\begin{equation}
+    \mathrm{I}[\mathbf{x},\mathbf{y}] \geq 0,
+\end{equation}
+
+with equality if and only if $\mathbf{x}$ and $\mathbf{y}$ are independent. Mutual information therefore quantifies how far the joint distribution is from the distribution that would result under independence.
+
+The logarithmic term can be written as
+
+\begin{equation}
+    \ln\frac{p(\mathbf{x},\mathbf{y})}{p(\mathbf{x})p(\mathbf{y})} = \ln \frac{p(\mathbf{x}\mid\mathbf{y})}{p(\mathbf{x})}.
+\end{equation}
+
+Substituting this expression into the mutual information in Eq.~\ref{eq:c1_mutual_information} gives
+
+\begin{equation}
+\begin{aligned}
+    \mathrm{I}[\mathbf{x},\mathbf{y}]
+    &= \left[-\iint p(\mathbf{x},\mathbf{y})\ln p(\mathbf{x})\,d\mathbf{x}\,d\mathbf{y}\right] \\
+    &\quad- \left[-\iint p(\mathbf{x},\mathbf{y})\ln p(\mathbf{x}\mid\mathbf{y})\,d\mathbf{x}\,d\mathbf{y}\right].
+\end{aligned}
+\end{equation}
+
+The second term is the conditional entropy $\mathrm{H}[x\mid y]$. The first term can be rewritten as
+
+\begin{equation}
+\begin{aligned}
+    -\iint p(\mathbf{x},\mathbf{y})\ln p(\mathbf{x})\,d\mathbf{x}\,d\mathbf{y}
+    &= -\int \ln p(\mathbf{x})\left[\int\ p(\mathbf{x},\mathbf{y})\,d\mathbf{y}\right]\,d\mathbf{x} \\
+    &= -\int p(\mathbf{x}) \ln p(\mathbf{x})\,d\mathbf{x},
+\end{aligned}
+\end{equation}
+
+which is the entropy $\mathrm{H}\left[x\right]$. Therefore,
+
+\begin{equation}
+    \mathrm{I}[\mathbf{x},\mathbf{y}] = \mathrm{H}[\mathbf{x}] - \mathrm{H}[\mathbf{x}\mid\mathbf{y}].
+\end{equation}
+
+Using similar argument but starting instead with $p(\mathbf{x},\mathbf{y}) = p(\mathbf{y}\mid\mathbf{x})p(\mathbf{x})$, we also obtain
+
+\begin{equation}
+    \mathrm{I}[\mathbf{x},\mathbf{y}] = \mathrm{H}[\mathbf{y}] - \mathrm{H}[\mathbf{y}\mid\mathbf{x}].
+\end{equation}
+
+Mutual information can therefore be interpreted as the reduction in uncertainty about one variable obtained by observing the other. Combining these expressions with the entropy chain rule in Eq.~\ref{eq:c1_entropy_chain_rule} also gives
+
+\begin{equation}
+    \mathrm{I}[\mathbf{x},\mathbf{y}] = \mathrm{H}[\mathbf{x}] + \mathrm{H}[\mathbf{y}] - \mathrm{H}[\mathbf{x},\mathbf{y}].
+\end{equation}
 
 \end{document}
