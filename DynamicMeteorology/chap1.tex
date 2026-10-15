@@ -1366,6 +1366,339 @@ The first term on the right represents the pressure variation along a constant-$
 
 The connection with the previous section becomes clear by choosing $s=p$. In this special case, Eqs.~\ref{eq:c1_general_pgf_hydrostatic_x} and \ref{eq:c1_general_pgf_hydrostatic_y} reduce to Eqs.~\ref{eq:c1_pgf_pressure_x} and \ref{eq:c1_pgf_pressure_y}, respectively. In later chapters, we will apply these generalized transformations to express the dynamical equations in different vertical coordinate systems.
 
+\section{Kinematics of Horizontal Flow}
+
+Kinematics describes motion without considering the forces that change the motion in time. In atmospheric dynamics, it provides a description of the structure of the wind field at a particular instant, which is useful for understanding how atmospheric flow evolves. Here, we focus on the local variation of horizontal wind near an arbitrary point $(x_0,y_0)$.
+
+Let the horizontal velocity field be $\mathbf{v}_h(x,y)=u(x,y)\mathbf{i}+v(x,y)\mathbf{j}$, where $u$ and $v$ are the zonal and meridional velocity components, respectively. Assuming that the velocity field is sufficiently smooth, we can approximate the wind at a nearby point $(x_0+\delta x,y_0+\delta y)$ using a first-order Taylor expansion,
+
+\begin{equation}
+\begin{aligned}
+    u(x_0+\delta x,y_0+\delta y) &\simeq u(x_0,y_0)+\left.\frac{\partial u}{\partial x}\right|_{(x_0,y_0)}\delta x+\left.\frac{\partial u}{\partial y}\right|_{(x_0,y_0)}\delta y,\\
+    v(x_0+\delta x,y_0+\delta y) &\simeq v(x_0,y_0)+\left.\frac{\partial v}{\partial x}\right|_{(x_0,y_0)}\delta x+\left.\frac{\partial v}{\partial y}\right|_{(x_0,y_0)}\delta y.
+\end{aligned}
+\label{eq:c1_kinematic_taylor}
+\end{equation}
+
+The four spatial derivatives in Eq.~\ref{eq:c1_kinematic_taylor} describe the local variation of the horizontal wind field and can be organized into the velocity-gradient matrix,
+
+\begin{equation}
+    \mathbf{J}=
+    \begin{pmatrix}
+        \dfrac{\partial u}{\partial x} & \dfrac{\partial u}{\partial y}\\[6pt]
+        \dfrac{\partial v}{\partial x} & \dfrac{\partial v}{\partial y}
+    \end{pmatrix}.
+\label{eq:c1_velocity_gradient_tensor}
+\end{equation}
+
+Rather than examining these derivatives individually, it is useful to express them in terms of four physically meaningful quantities: horizontal divergence, vertical relative vorticity, stretching deformation, and shearing deformation. These quantities provide a description of the elementary motions that make up the local flow.
+
+\begin{figure}[p]
+\centering
+\begin{tikzpicture}[scale=0.7,>=Stealth]
+
+% ===== parameters =====
+\def\xmin{-2.25}
+\def\xmax{2.25}
+\def\ymin{-2.25}
+\def\ymax{2.25}
+\def\sepX{5.2}
+\def\sepY{5.2}
+\def\fac{0.23}
+\def\mixfac{0.14}
+
+% ===== macro for one panel =====
+% #1 = x shift
+% #2 = y shift
+% #3 = expression for dx
+% #4 = expression for dy
+\newcommand{\flowpanel}[4]{%
+    \begin{scope}[shift={(#1,#2)}]
+        \draw[thick] (\xmin,\ymin) rectangle (\xmax,\ymax);
+
+        \foreach \x in {-2,-1.5,...,2} {
+            \foreach \y in {-2,-1.5,...,2} {
+                \pgfmathsetmacro{\dx}{#3}
+                \pgfmathsetmacro{\dy}{#4}
+                \pgfmathtruncatemacro{\nonzero}{abs(\x)+abs(\y)>0.001}
+
+                \ifnum\nonzero=1
+                    \draw[-{Stealth[length=0.8mm,width=0.8mm]},line width=0.4pt]
+                        ({\x-\dx/2},{\y-\dy/2}) --
+                        ({\x+\dx/2},{\y+\dy/2});
+                \fi
+            }
+        }
+
+        \fill (0,0) circle (0.8pt);
+    \end{scope}
+}
+
+% ===== macro for rotated row labels =====
+% #1 = y position
+% #2 = motion type
+% #3 = zero-valued quantities
+\newcommand{\rowlabel}[3]{%
+    \node[rotate=90,align=center]
+        at (-3.5,#1) {#2\\ $#3$};
+}
+
+% ===== Row 1: divergence =====
+\flowpanel{0}{0}{\fac*\x}{\fac*\y}
+\flowpanel{\sepX}{0}{-\fac*\x}{-\fac*\y}
+
+% ===== Row 2: vorticity =====
+\flowpanel{0}{-\sepY}{-\fac*\y}{\fac*\x}
+\flowpanel{\sepX}{-\sepY}{\fac*\y}{-\fac*\x}
+
+% ===== Row 3: stretching deformation =====
+\flowpanel{0}{-2*\sepY}{\fac*\x}{-\fac*\y}
+\flowpanel{\sepX}{-2*\sepY}{-\fac*\x}{\fac*\y}
+
+% ===== Row 4: shearing deformation =====
+\flowpanel{0}{-3*\sepY}{\fac*\y}{\fac*\x}
+\flowpanel{\sepX}{-3*\sepY}{-\fac*\y}{-\fac*\x}
+
+% ===== Row 5: divergence + vorticity =====
+\flowpanel{0}{-4*\sepY}
+    {\mixfac*(\x-\y)}{\mixfac*(\x+\y)}
+\flowpanel{\sepX}{-4*\sepY}
+    {\mixfac*(-\x-\y)}{\mixfac*(\x-\y)}
+
+% ===== Row 6: stretching + shearing deformation =====
+\flowpanel{0}{-5*\sepY}
+    {\mixfac*(\x+\y)}{\mixfac*(\x-\y)}
+\flowpanel{\sepX}{-5*\sepY}
+    {\mixfac*(\x-\y)}{\mixfac*(-\x-\y)}
+
+% ===== panel labels =====
+\node at (0,-2.65) {(a) $\delta>0$};
+\node at (\sepX,-2.65) {(b) $\delta<0$};
+
+\node at (0,-2.65-\sepY) {(c) $\zeta>0$};
+\node at (\sepX,-2.65-\sepY) {(d) $\zeta<0$};
+
+\node at (0,-2.65-2*\sepY) {(e) $d_1>0$};
+\node at (\sepX,-2.65-2*\sepY) {(f) $d_1<0$};
+
+\node at (0,-2.65-3*\sepY) {(g) $d_2>0$};
+\node at (\sepX,-2.65-3*\sepY) {(h) $d_2<0$};
+
+\node at (0,-2.65-4*\sepY) {(i) $\delta>0,\ \zeta>0$};
+\node at (\sepX,-2.65-4*\sepY) {(j) $\delta<0,\ \zeta>0$};
+
+\node at (0,-2.65-5*\sepY) {(k) $d_1>0,\ d_2>0$};
+\node at (\sepX,-2.65-5*\sepY) {(l) $d_1>0,\ d_2<0$};
+
+% ===== rotated row labels =====
+\rowlabel{0}
+    {Pure divergence}
+    {\zeta=d_1=d_2=0}
+
+\rowlabel{-\sepY}
+    {Pure vorticity}
+    {\delta=d_1=d_2=0}
+
+\rowlabel{-2*\sepY}
+    {Pure\\stretching\\deformation}
+    {\delta=\zeta=d_2=0}
+
+\rowlabel{-3*\sepY}
+    {Pure\\shearing\\deformation}
+    {\delta=\zeta=d_1=0}
+
+\rowlabel{-4*\sepY}
+    {Divergence\\and vorticity}
+    {d_1=d_2=0}
+
+\rowlabel{-5*\sepY}
+    {Stretching\\and shearing\\deformation}
+    {\delta=\zeta=0}
+
+\end{tikzpicture}
+\caption{The first four rows isolate individual kinematic quantities. The last two illustrate their combinations. In realistic atmospheric flows, these kinematic quantities generally coexist and vary spatially, producing much more complex wind patterns.}
+\label{fig:c1_kinematic_fields}
+\end{figure}
+
+The \textit{horizontal divergence}, denoted by $\delta$, is defined as
+
+\begin{equation}
+    \delta=\nabla_h\cdot\mathbf{v}_h
+    =\left(\mathbf{i}\frac{\partial}{\partial x}+\mathbf{j}\frac{\partial}{\partial y}\right)\cdot(u\mathbf{i}+v\mathbf{j})
+    =\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}.
+\label{eq:c1_horizontal_divergence}
+\end{equation}
+
+Divergence measures the net horizontal expansion or contraction of an infinitesimal fluid area. Positive divergence ($\delta>0$) indicates that the area expands, whereas negative divergence ($\delta<0$), called convergence, indicates that it contracts.
+
+The vertical component of relative vorticity, denoted by $\zeta$, is obtained from the curl of the horizontal velocity field,
+
+\begin{equation}
+\begin{aligned}
+    \nabla\times\mathbf{v}_h
+    =\begin{vmatrix}
+        \mathbf{i} & \mathbf{j} & \mathbf{k}\\
+        \dfrac{\partial}{\partial x} & \dfrac{\partial}{\partial y} & \dfrac{\partial}{\partial z}\\
+        u & v & 0
+    \end{vmatrix} &= \left(-\frac{\partial v}{\partial z}\right)\mathbf{i} + \left(\frac{\partial u}{\partial z}\right)\mathbf{j} + \left(\frac{\partial v}{\partial x}-\frac{\partial u}{\partial y}\right)\mathbf{k}\\
+    &=\left(\frac{\partial v}{\partial x}-\frac{\partial u}{\partial y}\right)\mathbf{k}
+    =\zeta\mathbf{k}.
+\end{aligned}
+\label{eq:c1_horizontal_vorticity}
+\end{equation}
+
+where $u=u(x,y)$ and $v=(x,y)$ do not depend on $z$ in this two-dimensional analysis. Hence,
+
+\begin{equation}
+    \zeta=\frac{\partial v}{\partial x}-\frac{\partial u}{\partial y}.
+\label{eq:c1_relative_vorticity}
+\end{equation}
+
+Relative \textit{vorticity} measures the local tendency of the fluid to rotate about the vertical axis. For pure solid-body rotation, the angular velocity is $\zeta/2$. According to the \textit{right-hand rule}, positive $\zeta$ corresponds to counterclockwise rotation when viewed from above, and negative $\zeta$ corresponds to clockwise rotation.
+
+The remaining two quantities describe deformation, which changes the shape of a fluid element. \textit{Stretching deformation}, denoted by $d_1$, is defined as
+
+\begin{equation}
+    d_1=\frac{\partial u}{\partial x}-\frac{\partial v}{\partial y},
+\label{eq:c1_stretching_deformation}
+\end{equation}
+
+and measures the difference between the rates of extension along the $x$ and $y$ directions. A positive $d_1$ indicates that the extension rate along the $x$ direction exceeds that along the $y$ direction, causing an initially square fluid element to become relatively elongated in the $x$ direction. A negative $d_1$ produces the opposite effect. Importantly, these rates need not have opposite signs. For example, the fluid element may expand in both directions but more rapidly along the $x$ direction and hence, still resulting in positive stretching deformation.
+
+\textit{Shearing deformation}, denoted by $d_2$, is defined as
+
+\begin{equation}
+    d_2=\frac{\partial v}{\partial x}+\frac{\partial u}{\partial y},
+\label{eq:c1_shearing_deformation}
+\end{equation}
+
+and measures the tendency of a fluid element to change its shape through variations of the velocity perpendicular to each coordinate direction. Specifically, $\partial v/\partial x$ describes how the meridional velocity changes along the $x$ direction, and $\partial u/\partial y$ describes how the zonal velocity changes along the $y$ direction. These variations cause an initially square fluid element to become a parallelogram. Unlike pure stretching deformation, the principal directions of extension and contraction are rotated by $45^\circ$ relative to the coordinate axes. For $d_2>0$, stretching occurs along the southwest--northeast diagonal, and contraction occurs along the northwest--southeast diagonal. For $d_2<0$, the opposite occurs. As with stretching deformation, the two velocity gradients contributing to $d_2$ need not have the same sign.
+
+Using Eqs.~\ref{eq:c1_horizontal_divergence}, \ref{eq:c1_relative_vorticity}, \ref{eq:c1_stretching_deformation}, and \ref{eq:c1_shearing_deformation}, the four spatial derivatives of the velocity field can be recovered as
+
+\begin{equation}
+\begin{aligned}
+    \frac{\partial u}{\partial x} &= \frac{1}{2}(\delta+d_1),&
+    \frac{\partial u}{\partial y} &= \frac{1}{2}(d_2-\zeta),\\
+    \frac{\partial v}{\partial x} &= \frac{1}{2}(\zeta+d_2),&
+    \frac{\partial v}{\partial y} &= \frac{1}{2}(\delta-d_1).
+\end{aligned}
+\label{eq:c1_kinematic_derivatives}
+\end{equation}
+
+Substituting these expressions into Eq.~\ref{eq:c1_kinematic_taylor} gives
+
+\begin{equation}
+\begin{aligned}
+    u(x_0+\delta x,y_0+\delta y) &\simeq u(x_0,y_0)+\frac{1}{2}(\delta+d_1)\delta x+\frac{1}{2}(d_2-\zeta)\delta y,\\
+    v(x_0+\delta x,y_0+\delta y) &\simeq v(x_0,y_0)+\frac{1}{2}(\zeta+d_2)\delta x+\frac{1}{2}(\delta-d_1)\delta y,
+\end{aligned}
+\label{eq:c1_kinematic_decomposition}
+\end{equation}
+
+where all four kinematic quantities are evaluated at $(x_0,y_0)$. Equation~\ref{eq:c1_kinematic_decomposition} shows that the horizontal velocity field near an arbitrary point $(x_0,y_0)$ can be approximated as a linear combination of elementary motions. The constant terms $u(x_0,y_0)$ and $v(x_0,y_0)$ represent uniform translation, which moves the fluid without changing its shape or area. The remaining terms describe local rotation, horizontal expansion or contraction, and deformation.
+
+Equivalently, the velocity-gradient tensor in Eq.~\ref{eq:c1_velocity_gradient_tensor} can be decomposed as
+
+\begin{equation}
+    \mathbf{J}
+    =\frac{\delta}{2}
+    \begin{pmatrix}1&0\\0&1\end{pmatrix}
+    +\frac{\zeta}{2}
+    \begin{pmatrix}0&-1\\1&0\end{pmatrix}
+    +\frac{1}{2}
+    \begin{pmatrix}d_1&d_2\\d_2&-d_1\end{pmatrix}.
+\label{eq:c1_velocity_gradient_decomposition}
+\end{equation}
+
+The first matrix represents isotropic horizontal expansion or contraction, the second represents rigid-body rotation, and the third represents deformation. In particular, the deformation matrix is symmetric and has zero trace, indicating that pure deformation changes the shape of a fluid element without producing a net change in its area. The magnitude of deformation is characterized by $D=\sqrt{d_1^2+d_2^2}$.
+
+An important distinction is that confluence and diffluence do not necessarily imply convergence and divergence, respectively. Confluence refers to a flow pattern in which neighboring streamlines approach one another, and diffluence refers to one in which they separate. However, horizontal divergence depends on the sum of the velocity gradients in two perpendicular directions. Consequently, fluid elements may approach one another along one direction and separate along another without producing any net horizontal divergence.
+
+These kinematic properties play important roles in atmospheric dynamics. Horizontal divergence is closely related to vertical motion through the conservation of mass. Relative vorticity characterizes the rotational structure of atmospheric circulation and is fundamental to the dynamics of large-scale weather systems. Deformation governs the stretching and reorientation of material structures in the flow and can strengthen horizontal gradients of atmospheric properties, particularly temperature. This process is important in the formation and evolution of frontal zones, where sharp horizontal temperature contrasts develop.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[scale=0.7,>=Stealth]
+
+% ===== parameters =====
+\def\xmin{-2.25}
+\def\xmax{2.25}
+\def\ymin{-2.25}
+\def\ymax{2.25}
+\def\sepX{5.2}
+\def\sepY{6.0}
+\def\U{0.28}          % background zonal flow (row 1)
+\def\Uzero{0.4}       % background zonal flow (row 2)
+\def\fac{0.15}        % strength of confluence/diffluence
+\def\arrowscale{0.7} % arrow scaling for row 2
+
+% ===== macro for one panel =====
+% #1 = x shift
+% #2 = y shift
+% #3 = expression for dx
+% #4 = expression for dy
+\newcommand{\flowpanel}[4]{%
+    \begin{scope}[shift={(#1,#2)}]
+        \draw[thick] (\xmin,\ymin) rectangle (\xmax,\ymax);
+
+        \foreach \x in {-2,-1.5,...,2} {
+            \foreach \y in {-2,-1.5,...,2} {
+                \pgfmathsetmacro{\dx}{#3}
+                \pgfmathsetmacro{\dy}{#4}
+                \draw[-{Stealth[length=0.8mm,width=0.8mm]},line width=0.4pt]
+                    ({\x-\dx/2},{\y-\dy/2}) --
+                    ({\x+\dx/2},{\y+\dy/2});
+            }
+        }
+    \end{scope}
+}
+
+% ===== Row 1: nonzero divergence =====
+% Confluence: u = U, v = -fac*y
+\flowpanel{0}{0}{\U}{-\fac*\y}
+
+% Diffluence: u = U, v = fac*y
+\flowpanel{\sepX}{0}{\U}{\fac*\y}
+
+% ===== Row 2: zero divergence =====
+% Confluence: u = Uzero + fac*x, v = -fac*y
+\flowpanel{0}{-\sepY}
+    {\arrowscale*(\Uzero+\fac*\x)}
+    {-\arrowscale*\fac*\y}
+
+% Diffluence: u = Uzero - fac*x, v = fac*y
+\flowpanel{\sepX}{-\sepY}
+    {\arrowscale*(\Uzero-\fac*\x)}
+    {\arrowscale*\fac*\y}
+
+% ===== panel labels =====
+\node at (0,2.65) {Confluence};
+\node at (\sepX,2.65) {Diffluence};
+
+% ===== kinematic quantities =====
+
+\node[align=center] at (0,-3.0)
+    {$\delta=-0.15,\ \zeta=0,$\\
+     $d_1=0.15,\ d_2=0$};
+
+\node[align=center] at (\sepX,-3.0)
+    {$\delta=0.15,\ \zeta=0,$\\
+     $d_1=-0.15,\ d_2=0$};
+
+\node[align=center] at (0,-3.0 -\sepY)
+    {$\delta=0,\ \zeta=0,$\\
+     $d_1=0.3,\ d_2=0$};
+
+\node[align=center] at (\sepX,-3.0 -\sepY)
+    {$\delta=0,\ \zeta=0,$\\
+     $d_1=-0.3,\ d_2=0$};
+
+\end{tikzpicture}
+\caption{In (a) and (b), confluence is accompanied by convergence, and diffluence by divergence. In (c), contraction along the $y$ direction is exactly balanced by extension along the $x$ direction. In (d), the opposite occurs, with $x$ contraction balanced by $y$ extension. Consequently, both flows have zero horizontal divergence despite exhibiting confluence and diffluence, respectively.}
+\label{fig:c1_confluence_diffluence}
+\end{figure}
+
 
 
 \end{document}
